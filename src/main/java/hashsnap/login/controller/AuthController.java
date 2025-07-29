@@ -1,5 +1,6 @@
 package hashsnap.login.controller;
 
+import hashsnap.login.dto.SignupRequestDto;
 import hashsnap.login.entity.User;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -14,8 +15,8 @@ public class AuthController {
     }
 
     @GetMapping("/register")
-    public String register(Model model) {
-        model.addAttribute("user", new User()); // 빈 User 객체 추가
+    public String registerForm(Model model) {
+        model.addAttribute("user", new SignupRequestDto());
         return "register";
     }
 
