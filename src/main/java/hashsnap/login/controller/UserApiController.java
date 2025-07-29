@@ -32,7 +32,7 @@ public class UserApiController {
     @PostMapping("/users")
     public ApiResponse signup(@Valid @RequestBody SignupRequestDto signupRequest) {
         try {
-            //userService.signup(signupRequest);
+            userService.signup(signupRequest);
             return ApiResponse.builder()
                     .success(true)
                     .message("회원가입이 완료되었습니다")
