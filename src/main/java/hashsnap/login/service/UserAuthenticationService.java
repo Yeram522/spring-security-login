@@ -12,14 +12,13 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class UserAuthenticationService implements UserDetailsService {
 
-    private final UserRepository userRepository;
+    private final UserService userService;
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         // Spring Security의 username 파라미터로 이메일을 받음
         // JPA로 사용자 조회
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다: " + email));
+        User user = userService.findByEmail(email);
 
         // User 엔티티를 Spring Security의 UserDetails로 변환
         return org.springframework.security.core.userdetails.User.builder()
