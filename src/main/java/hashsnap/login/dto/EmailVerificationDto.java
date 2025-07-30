@@ -14,7 +14,7 @@ public class EmailVerificationDto { // 이메일 인증 DTO
     private String action; // "send" or "verify"
 
     @NotBlank
-    private String purpose; // "signup"
+    private String purpose; // "signup" or "findPwd"
 
     @Email
     @NotBlank
