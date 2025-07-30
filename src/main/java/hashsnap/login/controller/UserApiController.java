@@ -1,15 +1,17 @@
 package hashsnap.login.controller;
 
 import hashsnap.global.response.ApiResponse;
-import hashsnap.login.dto.EmailCheckResponse;
-import hashsnap.login.dto.EmailVerificationDto;
-import hashsnap.login.dto.SignupRequestDto;
+import hashsnap.login.dto.*;
+import hashsnap.login.entity.User;
 import hashsnap.login.exception.EmailVerificationException;
 import hashsnap.login.exception.UserException.DuplicateUserException;
 import hashsnap.login.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 
 @RestController  // JSON 반환
@@ -23,7 +25,7 @@ public class UserApiController {
     // 이메일 중복 확인 API
     @GetMapping("/users")
     public EmailCheckResponse checkEmailDuplicate(@RequestParam String email) {
-        boolean exists = false;// userService.isEmailExists(email);
+        boolean exists = userService.isEmailExists(email);
         return EmailCheckResponse.builder()
                 .exists(exists)
                 .build();
@@ -65,6 +67,34 @@ public class UserApiController {
         }
     }
 
+
+    @GetMapping("/users/profile")
+    public ResponseEntity<ApiResponse> getUserProfile(@RequestParam String email) {
+        try {
+            User user = userService.findByEmail(email);
+
+            if (user == null) {
+                return ResponseEntity.ok(ApiResponse.builder()
+                        .success(false)
+                        .message("사용자를 찾을 수 없습니다.")
+                        .build());
+            }
+
+            UserInfoResponseDto userInfo = UserInfoResponseDto.from(user);
+
+            return ResponseEntity.ok(ApiResponse.builder()
+                    .success(true)
+                    .message("사용자 정보 조회 성공")
+                    .data(Map.of("user", userInfo))  // 이렇게 해야 data.user로 접근 가능
+                    .build());
+
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.builder()
+                    .success(false)
+                    .message("사용자 정보 조회 중 오류가 발생했습니다.")
+                    .build());
+        }
+    }
 
     private ApiResponse handleSendAction(EmailVerificationDto request) {
         //emailVerificationService.sendVerificationCode(request.getEmail());

@@ -59,6 +59,13 @@ public class User {
     @Builder.Default
     private Boolean emailVerified = false; // 이메일 인증 여부
 
+    // 토큰 관련
+    @Column(name = "refresh_token", length = 500)
+    private String refreshToken;
+
+    @Column(name = "refresh_token_expires_at")
+    private LocalDateTime refreshTokenExpiresAt;
+
     // 시간 관리
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt; // 마지막 로그인 시간

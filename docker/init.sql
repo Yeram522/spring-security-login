@@ -19,6 +19,10 @@ CREATE TABLE IF NOT EXISTS users (
     email_verified BOOLEAN DEFAULT FALSE COMMENT '이메일 인증 여부',
     -- phone_verified BOOLEAN DEFAULT FALSE COMMENT '휴대폰 인증 여부',
 
+    -- JWT 토큰 관리
+    refresh_token VARCHAR(500) NULL COMMENT 'JWT 리프레시 토큰',
+    refresh_token_expires_at DATETIME NULL COMMENT '리프레시 토큰 만료 시간',
+
     -- 시간 관리
     last_login_at DATETIME NULL COMMENT '마지막 로그인 시간',
     password_changed_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '비밀번호 변경 시간',
@@ -29,7 +33,8 @@ CREATE TABLE IF NOT EXISTS users (
     INDEX idx_username (username) COMMENT '로그인 시 사용',
     INDEX idx_email (email) COMMENT '이메일로 사용자 찾기',
     INDEX idx_nickname (nickname) COMMENT '닉네임 검색',
-    INDEX idx_status (status) COMMENT '활성 사용자 조회'
+    INDEX idx_status (status) COMMENT '활성 사용자 조회',
+    INDEX idx_refresh_token (refresh_token) COMMENT '토큰 검증 시 사용'
     ) COMMENT '사용자 정보 테이블';
 
 -- 기본 계정 생성 (비밀번호: admin123)
