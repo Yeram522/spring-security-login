@@ -86,6 +86,32 @@
     let sendCooldown = 0;
     let cooldownTimer;
 
+    // 공통 응답 처리 함수
+    function handleApiResponse(response, successCallback, errorCallback) {
+        // ResponseEntity로 감싸진 응답 처리
+        if (response.ok) {
+            return response.json().then(data => {
+                if (data.success !== undefined) {
+                    // ApiResponse 형태의 응답
+                    if (data.success) {
+                        successCallback(data);
+                    } else {
+                        errorCallback(data);
+                    }
+                } else {
+                    // EmailCheckResponse 형태의 응답 (중복 확인)
+                    successCallback(data);
+                }
+            });
+        } else {
+            return response.json().then(data => {
+                errorCallback(data);
+            }).catch(() => {
+                errorCallback({ message: '서버 오류가 발생했습니다.' });
+            });
+        }
+    }
+
     // 전화번호 자동 포맷팅
     document.getElementById('phone').addEventListener('input', function(e) {
         let value = e.target.value.replace(/[^0-9]/g, '');
@@ -130,18 +156,27 @@
         }
 
         fetch(`/api/users?email=${encodeURIComponent(email)}`)
-            .then(response => response.json())
-            .then(data => {
-                const messageDiv = document.getElementById('emailMessage');
-                if (data.exists) {
-                    messageDiv.innerHTML = '<span class="error-text">이미 존재하는 이메일입니다.</span>';
-                    isEmailDuplicateChecked = false;
-                    document.getElementById('verificationSection').style.display = 'none';
-                } else {
-                    messageDiv.innerHTML = '<span class="success-text">사용 가능한 이메일입니다.</span>';
-                    isEmailDuplicateChecked = true;
-                    document.getElementById('verificationSection').style.display = 'block';
-                }
+            .then(response => {
+                handleApiResponse(response,
+                    // 성공 콜백
+                    (data) => {
+                        const messageDiv = document.getElementById('emailMessage');
+                        if (data.exists) {
+                            messageDiv.innerHTML = '<span class="error-text">이미 존재하는 이메일입니다.</span>';
+                            isEmailDuplicateChecked = false;
+                            document.getElementById('verificationSection').style.display = 'none';
+                        } else {
+                            messageDiv.innerHTML = '<span class="success-text">사용 가능한 이메일입니다.</span>';
+                            isEmailDuplicateChecked = true;
+                            document.getElementById('verificationSection').style.display = 'block';
+                        }
+                    },
+                    // 실패 콜백
+                    (data) => {
+                        const messageDiv = document.getElementById('emailMessage');
+                        messageDiv.innerHTML = '<span class="error-text">중복 확인 중 오류가 발생했습니다.</span>';
+                    }
+                );
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -157,9 +192,10 @@
         }
 
         const email = document.getElementById('email').value;
+        const btn = this;
 
         // 버튼 비활성화
-        this.disabled = true;
+        btn.disabled = true;
 
         fetch('/api/email-verification', {
             method: 'POST',
@@ -172,21 +208,26 @@
                 email: email
             })
         })
-            .then(response => response.json())
-            .then(data => {
-                const sendMessageSpan = document.getElementById('sendMessage');
-                if (data.success) {
-                    sendMessageSpan.innerHTML = '<span class="success-text">인증번호가 발송되었습니다.</span>';
-                    startCooldown(60); // 60초 쿨다운
-                } else {
-                    sendMessageSpan.innerHTML = `<span class="error-text">${data.message}</span>`;
-                    this.disabled = false;
-                }
+            .then(response => {
+                handleApiResponse(response,
+                    // 성공 콜백
+                    (data) => {
+                        const sendMessageSpan = document.getElementById('sendMessage');
+                        sendMessageSpan.innerHTML = '<span class="success-text">인증번호가 발송되었습니다.</span>';
+                        startCooldown(60); // 60초 쿨다운
+                    },
+                    // 실패 콜백
+                    (data) => {
+                        const sendMessageSpan = document.getElementById('sendMessage');
+                        sendMessageSpan.innerHTML = `<span class="error-text">${data.message || '인증번호 발송에 실패했습니다.'}</span>`;
+                        btn.disabled = false;
+                    }
+                );
             })
             .catch(error => {
                 console.error('Error:', error);
                 document.getElementById('sendMessage').innerHTML = '<span class="error-text">인증번호 발송 중 오류가 발생했습니다.</span>';
-                this.disabled = false;
+                btn.disabled = false;
             });
     });
 
@@ -229,17 +270,22 @@
                 verificationCode: verificationCode
             })
         })
-            .then(response => response.json())
-            .then(data => {
-                const verificationMessageDiv = document.getElementById('verificationMessage');
-                if (data.success) {
-                    verificationMessageDiv.innerHTML = '<span class="success-text">이메일 인증이 완료되었습니다!</span>';
-                    isEmailVerified = true;
-                    alert('이메일 인증이 완료되었습니다!');
-                } else {
-                    verificationMessageDiv.innerHTML = '<span class="error-text">인증번호가 일치하지 않습니다.</span>';
-                    isEmailVerified = false;
-                }
+            .then(response => {
+                handleApiResponse(response,
+                    // 성공 콜백
+                    (data) => {
+                        const verificationMessageDiv = document.getElementById('verificationMessage');
+                        verificationMessageDiv.innerHTML = '<span class="success-text">이메일 인증이 완료되었습니다!</span>';
+                        isEmailVerified = true;
+                        alert('이메일 인증이 완료되었습니다!');
+                    },
+                    // 실패 콜백
+                    (data) => {
+                        const verificationMessageDiv = document.getElementById('verificationMessage');
+                        verificationMessageDiv.innerHTML = `<span class="error-text">${data.message || '인증번호가 일치하지 않습니다.'}</span>`;
+                        isEmailVerified = false;
+                    }
+                );
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -277,14 +323,18 @@
             },
             body: JSON.stringify(formData)
         })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('회원가입이 완료되었습니다!');
-                    window.location.href = '/login'; // ⭐ 로그인 페이지로 리다이렉트
-                } else {
-                    alert('회원가입에 실패했습니다: ' + data.message);
-                }
+            .then(response => {
+                handleApiResponse(response,
+                    // 성공 콜백
+                    (data) => {
+                        alert('회원가입이 완료되었습니다!');
+                        window.location.href = '/login'; // ⭐ 로그인 페이지로 리다이렉트
+                    },
+                    // 실패 콜백
+                    (data) => {
+                        alert('회원가입에 실패했습니다: ' + (data.message || ''));
+                    }
+                );
             })
             .catch(error => {
                 console.error('Error:', error);

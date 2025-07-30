@@ -9,8 +9,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -41,13 +39,15 @@ public class SecurityConfig {
                         .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
 
                         // === 웹 페이지 (Thymeleaf 템플릿) ===
-                        .requestMatchers("/login", "/register", "/", "/userPage").permitAll()
+                        .requestMatchers("/login", "/register", "/", "/userPage","/findPwd").permitAll()
 
                         // === Public API (인증 불필요) ===
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()           // 로그인
                         .requestMatchers(HttpMethod.GET, "/api/users").permitAll()                // 이메일 중복확인
                         .requestMatchers(HttpMethod.POST, "/api/users").permitAll()               // 회원가입
                         .requestMatchers(HttpMethod.POST, "/api/email-verification").permitAll()  // 이메일 인증
+                        .requestMatchers(HttpMethod.PUT, "/api/users/password").permitAll()     // 비밀번호 재설정
+                        
 
                         // === Private API (JWT 인증 필요) ===
                         .requestMatchers("/api/auth/refresh").authenticated()  // 토큰 갱신
@@ -91,11 +91,6 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", configuration);
 
         return source;
-    }
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
     }
 
     @Bean

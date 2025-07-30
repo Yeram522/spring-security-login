@@ -6,7 +6,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
 @Controller // Thymeleaf 뷰 반환
-public class AuthController {
+public class PageController {
 
     @GetMapping("/")
     public String index() {
@@ -27,5 +27,10 @@ public class AuthController {
     @GetMapping("/userPage")
     public String userPage() {
         return "userPage";
+    }
+
+    @GetMapping("/findPwd")
+    public String findPwd() {
+        return "findPwd";
     }
 }
