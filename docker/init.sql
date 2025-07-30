@@ -3,9 +3,9 @@ USE userdb;
 
 -- 사용자 테이블
 CREATE TABLE IF NOT EXISTS users (
-                                     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                                     username VARCHAR(50) NOT NULL UNIQUE COMMENT '로그인 아이디',
-    nickname VARCHAR(50) NOT NULL UNIQUE COMMENT '닉네임/표시명',
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL COMMENT '이름',
+    nickname VARCHAR(50) NOT NULL COMMENT '닉네임/표시명',
     password VARCHAR(100) NOT NULL COMMENT 'BCrypt 암호화된 비밀번호',
     phone VARCHAR(20) NOT NULL COMMENT '휴대폰 번호',
     email VARCHAR(100) NOT NULL UNIQUE COMMENT '이메일 주소',

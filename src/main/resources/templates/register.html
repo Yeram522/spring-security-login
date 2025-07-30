@@ -83,6 +83,8 @@
 <script>
     let isEmailDuplicateChecked = false;
     let isEmailVerified = false;
+    let sendCooldown = 0;
+    let cooldownTimer;
 
     // 전화번호 자동 포맷팅
     document.getElementById('phone').addEventListener('input', function(e) {
@@ -149,7 +151,15 @@
 
     // 인증번호 발송
     document.getElementById('sendVerificationBtn').addEventListener('click', function() {
+        if (sendCooldown > 0) {
+            alert(`${sendCooldown}초 후에 재발송 가능합니다.`);
+            return;
+        }
+
         const email = document.getElementById('email').value;
+
+        // 버튼 비활성화
+        this.disabled = true;
 
         fetch('/api/email-verification', {
             method: 'POST',
@@ -167,15 +177,35 @@
                 const sendMessageSpan = document.getElementById('sendMessage');
                 if (data.success) {
                     sendMessageSpan.innerHTML = '<span class="success-text">인증번호가 발송되었습니다.</span>';
+                    startCooldown(60); // 60초 쿨다운
                 } else {
-                    sendMessageSpan.innerHTML = '<span class="error-text">인증번호 발송에 실패했습니다.</span>';
+                    sendMessageSpan.innerHTML = `<span class="error-text">${data.message}</span>`;
+                    this.disabled = false;
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
                 document.getElementById('sendMessage').innerHTML = '<span class="error-text">인증번호 발송 중 오류가 발생했습니다.</span>';
+                this.disabled = false;
             });
     });
+
+    // 쿨다운 타이머 함수
+    function startCooldown(seconds) {
+        sendCooldown = seconds;
+        const btn = document.getElementById('sendVerificationBtn');
+
+        cooldownTimer = setInterval(() => {
+            btn.textContent = `재발송 (${sendCooldown}초)`;
+            sendCooldown--;
+
+            if (sendCooldown < 0) {
+                clearInterval(cooldownTimer);
+                btn.textContent = '인증번호 발송';
+                btn.disabled = false;
+            }
+        }, 1000);
+    }
 
     // 인증번호 확인
     document.getElementById('verifyCodeBtn').addEventListener('click', function() {

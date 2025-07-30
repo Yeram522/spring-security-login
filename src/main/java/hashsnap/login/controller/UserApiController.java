@@ -5,9 +5,11 @@ import hashsnap.login.dto.*;
 import hashsnap.login.entity.User;
 import hashsnap.login.exception.EmailVerificationException;
 import hashsnap.login.exception.UserException.DuplicateUserException;
+import hashsnap.login.service.EmailVerificationService;
 import hashsnap.login.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,10 +19,12 @@ import java.util.Map;
 @RestController  // JSON 반환
 @RequestMapping("/api")
 @ResponseBody
+@Slf4j
 @RequiredArgsConstructor
 public class UserApiController {
 
     private final UserService userService;
+    private final EmailVerificationService emailVerificationService;
 
     // 이메일 중복 확인 API
     @GetMapping("/users")
@@ -34,6 +38,14 @@ public class UserApiController {
     @PostMapping("/users")
     public ApiResponse signup(@Valid @RequestBody SignupRequestDto signupRequest) {
         try {
+            // 이메일 인증 완료 여부 확인
+            if (!emailVerificationService.isEmailVerified(signupRequest.getEmail(), "signup")) {
+                return ApiResponse.builder()
+                        .success(false)
+                        .message("이메일 인증을 완료해주세요.")
+                        .build();
+            }
+
             userService.signup(signupRequest);
             return ApiResponse.builder()
                     .success(true)
@@ -63,6 +75,7 @@ public class UserApiController {
         } catch (EmailVerificationException e) {
             return createErrorResponse(e.getMessage());
         } catch (Exception e) {
+            log.error("이메일 인증 처리 중 오류 발생", e);
             return createErrorResponse("처리 중 오류가 발생했습니다");
         }
     }
@@ -97,15 +110,21 @@ public class UserApiController {
     }
 
     private ApiResponse handleSendAction(EmailVerificationDto request) {
-        //emailVerificationService.sendVerificationCode(request.getEmail());
+        emailVerificationService.sendVerificationCode(request.getEmail(), request.getPurpose());
         return createSuccessResponse("인증번호가 발송되었습니다");
     }
 
     private ApiResponse handleVerifyAction(EmailVerificationDto request) {
-        boolean isValid = true;/*emailVerificationService.verifyCode(
+        if (request.getVerificationCode() == null || request.getVerificationCode().trim().isEmpty()) {
+            return createErrorResponse("인증번호를 입력해주세요");
+        }
+
+        boolean isValid = emailVerificationService.verifyCode(
                 request.getEmail(),
-                request.getVerificationCode()
-        );*/
+                request.getVerificationCode().trim(),
+                request.getPurpose()
+        );
+
         return isValid
                 ? createSuccessResponse("인증이 완료되었습니다")
                 : createErrorResponse("인증번호가 일치하지 않습니다");
