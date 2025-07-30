@@ -13,22 +13,183 @@
                     <h3>Login</h3>
                 </div>
                 <div class="card-body">
-                    <form th:action="@{/login}" method="post">
+                    <!-- 메시지 표시 영역 -->
+                    <div id="message" class="mb-3"></div>
+
+                    <!-- AJAX Form (Spring Security Form 대신) -->
+                    <form id="loginForm">
                         <div class="mb-3">
                             <label for="email" class="form-label">Email</label>
-                            <input type="text" class="form-control" id="email" name="email" required>
+                            <input type="email"
+                                   class="form-control"
+                                   id="email"
+                                   name="email"
+                                   required>
                         </div>
                         <div class="mb-3">
                             <label for="password" class="form-label">Password</label>
-                            <input type="password" class="form-control" id="password" name="password" required>
+                            <input type="password"
+                                   class="form-control"
+                                   id="password"
+                                   name="password"
+                                   required>
                         </div>
-                        <button type="submit" class="btn btn-primary">Login</button>
-                        <a href="/register" class="btn btn-link">Register</a>
+                        <button type="submit" class="btn btn-primary w-100" id="loginBtn">
+                            <span class="spinner-border spinner-border-sm d-none" id="spinner"></span>
+                            Login
+                        </button>
+                        <div class="text-center mt-3">
+                            <a href="/register" class="btn btn-link">Register</a>
+                        </div>
                     </form>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 이미 로그인되어 있는지 확인
+        checkExistingLogin();
+
+        // 로그인 폼 이벤트
+        document.getElementById('loginForm').addEventListener('submit', handleLogin);
+    });
+
+    // 기존 로그인 상태 확인
+    function checkExistingLogin() {
+        const accessToken = localStorage.getItem('accessToken');
+        const userEmail = localStorage.getItem('userEmail');
+
+        if (accessToken && userEmail) {
+            // 토큰이 유효한지 간단히 체크
+            if (isTokenValid(accessToken)) {
+                showMessage('이미 로그인되어 있습니다. 메인 페이지로 이동합니다.', 'info');
+                setTimeout(() => {
+                    window.location.href = '/userPage'; // 또는 메인 페이지 URL
+                }, 1500);
+            } else {
+                // 만료된 토큰 제거
+                clearStoredTokens();
+            }
+        }
+    }
+
+    // 로그인 처리
+    async function handleLogin(event) {
+        event.preventDefault();
+
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+
+        if (!email || !password) {
+            showMessage('이메일과 비밀번호를 모두 입력해주세요.', 'danger');
+            return;
+        }
+
+        // 로딩 상태 시작
+        setLoadingState(true);
+
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include', // HttpOnly 쿠키를 위해 필요
+                body: JSON.stringify({
+                    email: email,
+                    password: password
+                })
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                // 로그인 성공
+                const data = result.data;
+
+                // Access Token과 사용자 정보를 localStorage에 저장
+                localStorage.setItem('accessToken', data.accessToken);
+                localStorage.setItem('userEmail', data.userEmail);
+
+                showMessage('로그인 성공! 메인 페이지로 이동합니다.', 'success');
+
+                // 1.5초 후 메인 페이지로 리다이렉트
+                setTimeout(() => {
+                    window.location.href = '/userPage'; // 실제 메인 페이지 URL로 변경
+                }, 1500);
+
+            } else {
+                // 로그인 실패
+                showMessage(result.message || '로그인에 실패했습니다.', 'danger');
+            }
+
+        } catch (error) {
+            console.error('Login error:', error);
+            showMessage('로그인 중 오류가 발생했습니다. 다시 시도해주세요.', 'danger');
+        } finally {
+            setLoadingState(false);
+        }
+    }
+
+    // 메시지 표시
+    function showMessage(message, type) {
+        const messageDiv = document.getElementById('message');
+        messageDiv.innerHTML = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    }
+
+    // 로딩 상태 설정
+    function setLoadingState(isLoading) {
+        const loginBtn = document.getElementById('loginBtn');
+        const spinner = document.getElementById('spinner');
+
+        if (isLoading) {
+            loginBtn.disabled = true;
+            spinner.classList.remove('d-none');
+            loginBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 로그인 중...';
+        } else {
+            loginBtn.disabled = false;
+            spinner.classList.add('d-none');
+            loginBtn.innerHTML = 'Login';
+        }
+    }
+
+    // 토큰 유효성 간단 체크 (만료 시간만 확인)
+    function isTokenValid(token) {
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            const currentTime = Date.now() / 1000;
+            return payload.exp > currentTime;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    // 저장된 토큰 정보 삭제
+    function clearStoredTokens() {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('userEmail');
+    }
+
+    // Enter 키 처리
+    document.addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+            const loginForm = document.getElementById('loginForm');
+            if (loginForm) {
+                loginForm.dispatchEvent(new Event('submit'));
+            }
+        }
+    });
+</script>
 </body>
 </html>
