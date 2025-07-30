@@ -127,8 +127,7 @@
             })
             .then(data => {
                 if (data && data.success) {
-                    // 사용자 정보 표시
-                    displayUserInfo(data.user);
+                    displayUserInfo(data.data.user);
                 } else {
                     showError(data?.message || '사용자 정보를 불러오는데 실패했습니다.');
                 }
@@ -144,19 +143,17 @@
         // 로딩 스피너 숨기기
         document.getElementById('loadingSpinner').style.display = 'none';
 
-        // 환영 메시지 업데이트
-        document.getElementById('welcomeMessage').textContent = `안녕하세요! ${user.name || user.nickname}님!`;
+        document.getElementById('welcomeMessage').textContent = `안녕하세요! ${user.nickname || user.username || '사용자'}님!`;
 
         // 사용자 정보 업데이트
         document.getElementById('userEmail').textContent = user.email || '-';
         document.getElementById('userNickname').textContent = user.nickname || '-';
-        document.getElementById('userName').textContent = user.name || user.username || '-';
+        document.getElementById('userName').textContent = user.username || '-';
         document.getElementById('userPhone').textContent = user.phone || '-';
 
         // 사용자 정보 카드 표시
         document.getElementById('userInfoCard').style.display = 'block';
     }
-
     // 오류 메시지 표시
     function showError(message) {
         document.getElementById('loadingSpinner').style.display = 'none';
