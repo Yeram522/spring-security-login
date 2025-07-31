@@ -132,6 +132,7 @@ public class UserService {
         String encodedPassword = passwordEncoder.encode(newPassword);
 
         user.setLoginFailureCount(0);
+        user.setStatus(User.UserStatus.ACTIVE);
         user.setPassword(encodedPassword);
 
         log.info("비밀번호 재설정 완료: email={}", email);
