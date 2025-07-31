@@ -29,7 +29,6 @@ Spring Security를 활용한 사용자 인증 시스템 구현 프로젝트입�
 ### 추가 구현 기능
 - 실제 이메일 인증: SMTP 서버를 통한 6자리 인증번호 발송 및 검증
   - 회원가입 시 이메일 소유권 확인
-  - 비밀번호 재설정 시 본인 인증 강화
 - 계정 보안 시스템: 5회 로그인 실패 시 계정 자동 잠금
   - 브루트포스 공격 방어
   - 비밀번호 재설정을 통한 계정 잠금 해제
@@ -38,12 +37,12 @@ Spring Security를 활용한 사용자 인증 시스템 구현 프로젝트입�
 ## 🚀 2. 실행 방법
 
 ### 사전 요구사항
-- Java 17 이상
-- Docker & Docker Compose
+- Java 17 
+- Docker Desktop
 - `application.yml`, `LoginApplication` 파일이 있는 `login`프로젝트 파일
 
 ### 설치 및 구동 가이드
-
+Docker Desktop 엔진이 정상적으로 구동되고 있는 지 확인 후 실행해주세요.
 ```bash
 # 1. 프로젝트 루트 디렉토리에서 ./gradlew build (맥, 리눅스) 또는 
 # .\gradlew.bat build (윈도우) 명령어를 실행하여 빌드합니다. 
