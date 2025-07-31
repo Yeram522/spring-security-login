@@ -11,6 +11,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 /**
@@ -73,6 +74,9 @@ public class AuthService {
             // 4. 인증 실패 시 실패 카운트 증가
             userService.incrementLoginFailureCount(email);
             log.warn("로그인 실패 - 잘못된 인증 정보: {} (실패 횟수 증가)", email);
+            throw new AuthException.InvalidCredentialsException("이메일 또는 비밀번호가 올바르지 않습니다");
+        }catch (UsernameNotFoundException e){
+            log.warn("로그인 실패 - 존재하지 않는 유저: {}", email);
             throw new AuthException.InvalidCredentialsException("이메일 또는 비밀번호가 올바르지 않습니다");
         }
     }

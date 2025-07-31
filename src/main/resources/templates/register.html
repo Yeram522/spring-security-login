@@ -85,6 +85,12 @@
     let sendCooldown = 0;
     let cooldownTimer;
 
+    // 이메일 형식 검증 함수
+    function isValidEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    }
+
     document.getElementById('phone').addEventListener('input', function(e) {
         let value = e.target.value.replace(/[^0-9]/g, '');
 
@@ -119,8 +125,15 @@
 
     document.getElementById('checkDuplicateBtn').addEventListener('click', function() {
         const email = document.getElementById('email').value;
+
         if (!email) {
             alert('이메일을 입력해주세요.');
+            return;
+        }
+
+        // 이메일 형식 검증 추가
+        if (!isValidEmail(email)) {
+            document.getElementById('emailMessage').innerHTML = '<span class="error-text">올바른 이메일 형식을 입력해주세요.</span>';
             return;
         }
 
@@ -155,6 +168,24 @@
         }
 
         const email = document.getElementById('email').value;
+
+        // 이메일 형식 검증 추가
+        if (!email) {
+            alert('이메일을 입력해주세요.');
+            return;
+        }
+
+        if (!isValidEmail(email)) {
+            alert('올바른 이메일 형식을 입력해주세요.');
+            return;
+        }
+
+        // 중복 확인 여부 체크
+        if (!isEmailDuplicateChecked) {
+            alert('이메일 중복 확인을 먼저 해주세요.');
+            return;
+        }
+
         const btn = this;
         btn.disabled = true;
 
