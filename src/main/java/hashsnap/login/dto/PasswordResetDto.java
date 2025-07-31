@@ -8,6 +8,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+/**
+ * 비밀번호 변경 요청 DTO
+ */
 @Getter
 @Builder
 @NoArgsConstructor

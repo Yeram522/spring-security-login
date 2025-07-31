@@ -11,6 +11,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
 
+/**
+ * 리프레시 토큰 관리 서비스
+ * 사용자별 RefreshToken DB 저장, 검증, 삭제 처리
+ * JWT 토큰 갱신 시 보안 검증 담당
+ */
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -41,7 +46,7 @@ public class RefreshTokenService {
         }
 
         try {
-            User user = userRepository.findByEmail(email)
+            User user = userRepository.findActiveUserByEmail(email)
                     .orElseThrow(() -> {
                         log.warn("사용자를 찾을 수 없음: email={}", email);
                         return new UserNotFoundException("사용자를 찾을 수 없습니다: " + email);
@@ -79,7 +84,7 @@ public class RefreshTokenService {
         }
 
         try {
-            User user = userRepository.findByEmail(email)
+            User user = userRepository.findActiveUserByEmail(email)
                     .orElseThrow(() -> {
                         log.warn("사용자를 찾을 수 없음: email={}", email);
                         return new UserNotFoundException("사용자를 찾을 수 없습니다: " + email);
@@ -119,7 +124,7 @@ public class RefreshTokenService {
         }
 
         try {
-            User user = userRepository.findByEmail(email)
+            User user = userRepository.findActiveUserByEmail(email)
                     .orElseThrow(() -> {
                         log.warn("사용자를 찾을 수 없음: email={}", email);
                         return new UserNotFoundException("사용자를 찾을 수 없습니다: " + email);
@@ -150,7 +155,7 @@ public class RefreshTokenService {
         }
 
         try {
-            User user = userRepository.findByEmail(email)
+            User user = userRepository.findActiveUserByEmail(email)
                     .orElseThrow(() -> {
                         log.warn("사용자를 찾을 수 없음: email={}", email);
                         return new UserNotFoundException("사용자를 찾을 수 없습니다: " + email);

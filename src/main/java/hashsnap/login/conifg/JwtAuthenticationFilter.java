@@ -13,6 +13,12 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+/**
+ * JWT 인증 필터
+ *
+ * HTTP 요청에서 JWT 토큰을 추출하고, 유효한 경우 사용자 인증을 수행하여
+ * SecurityContext에 등록함.
+ */
 
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter{

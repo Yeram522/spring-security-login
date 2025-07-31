@@ -6,6 +6,11 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * 유저 정보 응답 DTO
+ * 로그인된 사용자의 프로필 정보 조회 시 사용
+ * 민감한 정보(비밀번호) 제외하고 반환
+ */
 @Data
 @Builder
 @NoArgsConstructor

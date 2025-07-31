@@ -11,6 +11,11 @@ import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 
+/**
+ * 이메일 인증 서비스
+ * JavaMailSender 기반 인증번호 발송 및 검증
+ * HttpSession을 활용한 임시 인증 상태 관리 (5분 만료)
+ */
 @Service
 @RequiredArgsConstructor
 public class EmailVerificationService {

@@ -17,6 +17,11 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
 
+/**
+ * Spring Security 보안 설정
+ * JWT 인증 필터 체인 구성 및 URL별 접근 권한 설정
+ * CSRF 보호, CORS 설정, 폼 로그인 비활성화 등 API 서버 최적화
+ */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {

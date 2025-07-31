@@ -6,7 +6,9 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
 /**
- * Thymeleaf 뷰 반환 페이지 컨트롤러
+ * 페이지 라우팅 컨트롤러
+ * Thymeleaf 뷰 템플릿을 반환하는 페이지 네비게이션 담당
+ * JWT 토큰 기반 클라이언트 사이드 라우팅 지원
  */
 @Controller
 public class PageController {

@@ -11,6 +11,11 @@ import org.springframework.stereotype.Component;
 import java.util.Base64;
 import java.util.Date;
 
+/**
+ * JWT 토큰 유틸리티 클래스
+ * Access/Refresh Token 생성, 검증, 파싱 기능 제공
+ * JJWT 라이브러리 기반 토큰 관리 및 만료 시간 검증
+ */
 @Component
 public class JwtUtil {
 

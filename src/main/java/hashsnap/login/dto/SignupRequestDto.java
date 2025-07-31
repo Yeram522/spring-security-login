@@ -8,6 +8,11 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * 회원가입 요청 DTO
+ * 사용자 등록 시 필요한 정보 전달
+ * Bean Validation 어노테이션을 통한 입력값 검증 포함
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
