@@ -54,14 +54,12 @@
                     <h3>비밀번호 찾기</h3>
                 </div>
                 <div class="card-body">
-                    <!-- 진행 단계 표시 -->
                     <div class="progress-steps">
                         <div class="progress-step active" id="step1-indicator">1</div>
                         <div class="progress-step" id="step2-indicator">2</div>
                         <div class="progress-step" id="step3-indicator">3</div>
                     </div>
 
-                    <!-- 1단계: 이메일 입력 및 인증 -->
                     <div id="step1" class="step-section active">
                         <h5 class="mb-3">1단계: 이메일 인증</h5>
                         <div class="mb-3">
@@ -83,7 +81,6 @@
                         </div>
                     </div>
 
-                    <!-- 2단계: 비밀번호 재설정 -->
                     <div id="step2" class="step-section">
                         <h5 class="mb-3">2단계: 새 비밀번호 설정</h5>
                         <div class="mb-3">
@@ -99,7 +96,6 @@
                         <button type="button" class="btn btn-primary w-100" id="resetPasswordBtn">비밀번호 재설정</button>
                     </div>
 
-                    <!-- 3단계: 완료 -->
                     <div id="step3" class="step-section">
                         <div class="text-center">
                             <div class="mb-4">
@@ -111,7 +107,6 @@
                         </div>
                     </div>
 
-                    <!-- 뒤로가기 버튼 -->
                     <div class="text-center mt-3">
                         <a href="/login" class="btn btn-link">로그인 페이지로 돌아가기</a>
                     </div>
@@ -125,17 +120,13 @@
     let currentStep = 1;
     let verifiedEmail = '';
 
-    // 단계 전환 함수
     function showStep(step) {
-        // 모든 단계 숨기기
         document.querySelectorAll('.step-section').forEach(section => {
             section.classList.remove('active');
         });
 
-        // 현재 단계 표시
         document.getElementById(`step${step}`).classList.add('active');
 
-        // 진행 표시기 업데이트
         document.querySelectorAll('.progress-step').forEach((indicator, index) => {
             indicator.classList.remove('active', 'completed');
             if (index + 1 < step) {
@@ -148,27 +139,6 @@
         currentStep = step;
     }
 
-    // 공통 응답 처리 함수
-    function handleApiResponse(response, successCallback, errorCallback) {
-        // ResponseEntity로 감싸진 응답 처리
-        if (response.ok) {
-            return response.json().then(data => {
-                if (data.success) {
-                    successCallback(data);
-                } else {
-                    errorCallback(data);
-                }
-            });
-        } else {
-            return response.json().then(data => {
-                errorCallback(data);
-            }).catch(() => {
-                errorCallback({ message: '서버 오류가 발생했습니다.' });
-            });
-        }
-    }
-
-    // 1단계: 인증요청
     document.getElementById('sendCodeBtn').addEventListener('click', function() {
         const email = document.getElementById('email').value;
         if (!email) {
@@ -180,7 +150,7 @@
         btn.disabled = true;
         btn.textContent = '발송 중...';
 
-        fetch('/api/email-verification', {
+        fetch('/api/v1/auth/email-verification', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -191,22 +161,17 @@
                 email: email
             })
         })
-            .then(response => {
-                handleApiResponse(response,
-                    // 성공 콜백
-                    (data) => {
-                        const messageDiv = document.getElementById('emailMessage');
-                        messageDiv.innerHTML = '<span class="success-text">인증번호가 발송되었습니다.</span>';
-                        document.getElementById('verificationSection').style.display = 'block';
-                        verifiedEmail = email;
-                    },
-                    // 실패 콜백
-                    (data) => {
-                        const messageDiv = document.getElementById('emailMessage');
-                        messageDiv.innerHTML = `<span class="error-text">${data.message || '인증번호 발송에 실패했습니다.'}</span>`;
-                        alert(data.message || '인증번호 발송에 실패했습니다.');
-                    }
-                );
+            .then(response => response.json())
+            .then(data => {
+                const messageDiv = document.getElementById('emailMessage');
+                if (data.success) {
+                    messageDiv.innerHTML = '<span class="success-text">인증번호가 발송되었습니다.</span>';
+                    document.getElementById('verificationSection').style.display = 'block';
+                    verifiedEmail = email;
+                } else {
+                    messageDiv.innerHTML = `<span class="error-text">${data.message || '인증번호 발송에 실패했습니다.'}</span>`;
+                    alert(data.message || '인증번호 발송에 실패했습니다.');
+                }
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -219,7 +184,6 @@
             });
     });
 
-    // 1단계: 인증번호 확인
     document.getElementById('verifyCodeBtn').addEventListener('click', function() {
         const verificationCode = document.getElementById('verificationCode').value;
         if (!verificationCode) {
@@ -227,7 +191,7 @@
             return;
         }
 
-        fetch('/api/email-verification', {
+        fetch('/api/v1/auth/email-verification', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -239,22 +203,17 @@
                 verificationCode: verificationCode
             })
         })
-            .then(response => {
-                handleApiResponse(response,
-                    // 성공 콜백
-                    (data) => {
-                        const messageDiv = document.getElementById('verificationMessage');
-                        messageDiv.innerHTML = '<span class="success-text">인증이 완료되었습니다!</span>';
-                        setTimeout(() => {
-                            showStep(2);
-                        }, 1000);
-                    },
-                    // 실패 콜백
-                    (data) => {
-                        const messageDiv = document.getElementById('verificationMessage');
-                        messageDiv.innerHTML = `<span class="error-text">${data.message || '인증번호가 일치하지 않습니다.'}</span>`;
-                    }
-                );
+            .then(response => response.json())
+            .then(data => {
+                const messageDiv = document.getElementById('verificationMessage');
+                if (data.success) {
+                    messageDiv.innerHTML = '<span class="success-text">인증이 완료되었습니다!</span>';
+                    setTimeout(() => {
+                        showStep(2);
+                    }, 1000);
+                } else {
+                    messageDiv.innerHTML = `<span class="error-text">${data.message || '인증번호가 일치하지 않습니다.'}</span>`;
+                }
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -262,7 +221,6 @@
             });
     });
 
-    // 2단계: 비밀번호 확인 실시간 체크
     document.getElementById('confirmPassword').addEventListener('input', function() {
         const newPassword = document.getElementById('newPassword').value;
         const confirmPassword = this.value;
@@ -277,7 +235,6 @@
         }
     });
 
-    // 2단계: 비밀번호 재설정
     document.getElementById('resetPasswordBtn').addEventListener('click', function() {
         const newPassword = document.getElementById('newPassword').value;
         const confirmPassword = document.getElementById('confirmPassword').value;
@@ -301,7 +258,7 @@
         btn.disabled = true;
         btn.textContent = '재설정 중...';
 
-        fetch('/api/users/password', {
+        fetch('/api/v1/users/password', {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -311,17 +268,13 @@
                 newPassword: newPassword
             })
         })
-            .then(response => {
-                handleApiResponse(response,
-                    // 성공 콜백
-                    (data) => {
-                        showStep(3);
-                    },
-                    // 실패 콜백
-                    (data) => {
-                        alert('비밀번호 재설정에 실패했습니다: ' + (data.message || ''));
-                    }
-                );
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showStep(3);
+                } else {
+                    alert('비밀번호 재설정에 실패했습니다: ' + (data.message || ''));
+                }
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -333,7 +286,6 @@
             });
     });
 
-    // 3단계: 로그인 페이지로 이동
     document.getElementById('goToLoginBtn').addEventListener('click', function() {
         alert('비밀번호가 성공적으로 재설정되었습니다!');
         window.location.href = '/login';
