@@ -21,7 +21,6 @@ CREATE TABLE IF NOT EXISTS users (
 
     -- JWT 토큰 관리
     refresh_token VARCHAR(500) NULL COMMENT 'JWT 리프레시 토큰',
-    refresh_token_expires_at DATETIME NULL COMMENT '리프레시 토큰 만료 시간',
 
     -- 시간 관리
     last_login_at DATETIME NULL COMMENT '마지막 로그인 시간',
@@ -46,3 +45,31 @@ INSERT IGNORE INTO users (
     '010-9876-5432', 'user@example.com',
     'ACTIVE', TRUE, TRUE
 );
+
+-- 구분자 변경 (트리거 생성을 위해)
+DELIMITER $$
+
+-- 로그인 시간 업데이트 트리거
+CREATE TRIGGER update_login_time
+    BEFORE UPDATE ON users
+    FOR EACH ROW
+BEGIN
+    -- refresh_token이 NULL/빈값에서 실제값으로 변경되는 경우만 로그인으로 판단
+    IF COALESCE(OLD.refresh_token, '') = ''
+       AND COALESCE(NEW.refresh_token, '') != '' THEN
+        SET NEW.last_login_at = NOW();
+END IF;
+END$$
+
+-- 비밀번호 재설정 시간 업데이트 트리거
+CREATE TRIGGER update_password_reset_time
+    BEFORE UPDATE ON users
+    FOR EACH ROW
+BEGIN
+    IF NEW.password != OLD.password THEN
+        SET NEW.password_changed_at = NOW();
+END IF;
+END$$
+
+-- 구분자 원복
+DELIMITER ;
