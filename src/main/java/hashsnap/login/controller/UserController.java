@@ -32,11 +32,21 @@ public class UserController extends ApiController {
      */
     @GetMapping("/users")
     public ResponseEntity<ApiResponse<EmailCheckResponseDto>> checkEmailDuplicate(@RequestParam String email) {
+        // 이메일 형식 검증
+        if (!isValidEmail(email)) {
+            return ResponseUtils.badRequest("올바른 이메일 형식이 아닙니다");
+        }
+
         boolean exists = userService.isEmailExists(email);
         EmailCheckResponseDto response = EmailCheckResponseDto.builder()
                 .exists(exists)
                 .build();
         return ResponseUtils.ok("이메일 중복 확인 완료", response);
+    }
+
+    private boolean isValidEmail(String email) {
+        String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
+        return email != null && email.matches(emailRegex);
     }
 
     /**
