@@ -49,4 +49,14 @@ public class AuthException {
             super(message, "ACCESS_DENIED", HttpStatus.FORBIDDEN);
         }
     }
+
+    public static class AccountLockedException extends BusinessException {
+        public AccountLockedException() {
+            super("계정이 잠겨있습니다.", "ACCOUNT_LOCKED", HttpStatus.LOCKED);
+        }
+
+        public AccountLockedException(String message) {
+            super(message, "ACCOUNT_LOCKED", HttpStatus.LOCKED);
+        }
+    }
 }
