@@ -1,0 +1,126 @@
+package hashsnap.login.controller;
+
+import hashsnap.global.controller.ApiController;
+import hashsnap.global.response.ApiResponse;
+import hashsnap.global.util.ResponseUtils;
+import hashsnap.login.dto.LoginRequest;
+import hashsnap.login.dto.LoginResponseDto;
+import hashsnap.login.dto.TokenRefreshResponseDto;
+import hashsnap.login.service.AuthService;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequiredArgsConstructor
+public class AuthController extends ApiController {
+
+    private final AuthService authService;
+
+    /**
+     * 로그인 API
+     * @param loginRequest 로그인 요청 DTO
+     * @param response Refresh Token을 HttpOnly 쿠키로 설정 목적
+     * @return response message
+     */
+    @PostMapping("/auth/login")
+    public ResponseEntity<ApiResponse<LoginResponseDto>> login(
+            @Valid @RequestBody LoginRequest loginRequest,
+            HttpServletResponse response) {
+
+        LoginResponseDto loginResponse = authService.login(loginRequest);
+
+        // Refresh Token을 HttpOnly 쿠키에 저장 (보안상 응답에서 제외)
+        addRefreshTokenCookie(response, loginResponse.getRefreshToken());
+
+        // 응답에서는 Refresh Token 제외
+        LoginResponseDto safeResponse = LoginResponseDto.builder()
+                .accessToken(loginResponse.getAccessToken())
+                .userEmail(loginResponse.getUserEmail())
+                .build();
+
+        return ResponseUtils.ok("로그인이 완료되었습니다", safeResponse);
+    }
+
+    /**
+     * 리프레시 토큰 요청 API
+     * @param request Refresh Token을 쿠키에서 꺼내는 용도.
+     * @return result message
+     */
+    @PostMapping("/auth/refresh")
+    public ResponseEntity<ApiResponse<TokenRefreshResponseDto>> refreshToken(HttpServletRequest request) {
+
+        String refreshToken = extractRefreshTokenFromCookie(request);
+        String newAccessToken = authService.refreshAccessToken(refreshToken);
+
+        TokenRefreshResponseDto response = TokenRefreshResponseDto.builder()
+                .accessToken(newAccessToken)
+                .build();
+
+        return ResponseUtils.ok("토큰이 갱신되었습니다", response);
+    }
+
+    /**
+     * 로그아웃 API
+     * @param request Refresh Token을 쿠키에서 가져오기 위한 용도.
+     * @param response Refresh Token을 만료시키기 위한 용도.
+     * @return result message
+     */
+    @PostMapping("/auth/logout")
+    public ResponseEntity<ApiResponse<Void>> logout(
+            HttpServletRequest request,
+            HttpServletResponse response) {
+
+        String refreshToken = extractRefreshTokenFromCookie(request);
+        authService.logout(refreshToken);
+
+        // Refresh Token 쿠키 삭제
+        removeRefreshTokenCookie(response);
+
+        return ResponseUtils.ok("로그아웃이 완료되었습니다");
+    }
+
+    // === 쿠키 관련 헬퍼 메서드들 (Controller 책임) ===
+
+    /**
+     * Refresh Token 쿠키 추가
+     */
+    private void addRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
+        Cookie cookie = new Cookie("refreshToken", refreshToken);
+        cookie.setHttpOnly(true);      // JavaScript 접근 차단
+        cookie.setSecure(true);        // HTTPS에서만 전송 (개발 시에는 false로 설정)
+        cookie.setPath("/");
+        cookie.setMaxAge(7 * 24 * 60 * 60); // 7일
+        response.addCookie(cookie);
+    }
+
+    /**
+     * Refresh Token 쿠키 삭제
+     */
+    private void removeRefreshTokenCookie(HttpServletResponse response) {
+        Cookie cookie = new Cookie("refreshToken", null);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(0); // 즉시 만료
+        response.addCookie(cookie);
+    }
+
+    /**
+     * 쿠키에서 Refresh Token 추출
+     */
+    private String extractRefreshTokenFromCookie(HttpServletRequest request) {
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("refreshToken".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        return null;
+    }
+}

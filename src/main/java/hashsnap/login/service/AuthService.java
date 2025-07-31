@@ -1,0 +1,98 @@
+package hashsnap.login.service;
+
+import hashsnap.global.util.JwtUtil;
+import hashsnap.login.dto.LoginRequest;
+import hashsnap.login.dto.LoginResponseDto;
+import hashsnap.login.exception.AuthException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Service;
+
+@Service
+@Slf4j
+@RequiredArgsConstructor
+public class AuthService {
+    private final AuthenticationManager authenticationManager;
+    private final JwtUtil jwtUtil;
+    private final RefreshTokenService refreshTokenService;
+
+    /**
+     * 로그인 처리
+     */
+    public LoginResponseDto login(LoginRequest loginRequest) {
+        try {
+            // 인증 시도
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            loginRequest.getEmail(),
+                            loginRequest.getPassword()
+                    )
+            );
+
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            String email = userDetails.getUsername();
+
+            // 토큰 생성
+            String accessToken = jwtUtil.createAccessToken(email);
+            String refreshToken = jwtUtil.createRefreshToken(email);
+
+            // Refresh Token DB에 저장
+            refreshTokenService.saveRefreshToken(email, refreshToken);
+
+            log.info("로그인 성공: {}", email);
+
+            return LoginResponseDto.builder()
+                    .accessToken(accessToken)
+                    .refreshToken(refreshToken)
+                    .userEmail(email)
+                    .build();
+
+        } catch (BadCredentialsException e) {
+            log.warn("로그인 실패 - 잘못된 인증 정보: {}", loginRequest.getEmail());
+            throw new AuthException.InvalidCredentialsException("이메일 또는 비밀번호가 올바르지 않습니다");
+        }
+    }
+
+    /**
+     * 토큰 갱신
+     */
+    public String refreshAccessToken(String refreshToken) {
+        // 토큰 유효성 검증
+        if (refreshToken == null) {
+            throw new AuthException.InvalidTokenException("Refresh Token이 없습니다");
+        }
+
+        if (!jwtUtil.validateToken(refreshToken)) {
+            throw new AuthException.TokenExpiredException("유효하지 않은 Refresh Token입니다");
+        }
+
+        String email = jwtUtil.getEmail(refreshToken);
+
+        // DB에 저장된 Refresh Token과 비교
+        if (!refreshTokenService.validateRefreshToken(email, refreshToken)) {
+            throw new AuthException.InvalidTokenException("Refresh Token이 일치하지 않습니다");
+        }
+
+        // 새로운 Access Token 생성
+        String newAccessToken = jwtUtil.createAccessToken(email);
+        log.info("토큰 갱신 완료: {}", email);
+
+        return newAccessToken;
+    }
+
+    /**
+     * 로그아웃 처리
+     */
+    public void logout(String refreshToken) {
+        if (refreshToken != null && jwtUtil.validateToken(refreshToken)) {
+            String email = jwtUtil.getEmail(refreshToken);
+            refreshTokenService.deleteRefreshToken(email);
+            log.info("로그아웃 완료: {}", email);
+        }
+    }
+}

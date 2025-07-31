@@ -18,7 +18,6 @@ import java.util.Map;
 
 
 @RestController  // JSON 반환
-@ResponseBody
 @Slf4j
 @RequiredArgsConstructor
 public class UserController extends ApiController {
@@ -96,7 +95,7 @@ public class UserController extends ApiController {
      * @param request 이메일 인증 DTO
      * @return result message
      */
-    @PostMapping("/email-verification")
+    @PostMapping("/auth/email-verification")
     public ResponseEntity<ApiResponse<Void>> handleEmailVerification(@Valid @RequestBody EmailVerificationDto request) {
         try {
             return switch (request.getAction()) {
