@@ -1,0 +1,397 @@
+# 🔐 Spring Security Login System
+
+## 📋 1. 프로젝트 개요
+Spring Security를 활용한 사용자 인증 시스템 구현 프로젝트입니다.
+단순한 로그인 기능을 넘어서 실무에서 요구되는 보안 표준과 에러 핸들링을 학습하고 구현하는 것을 목표로 했습니다.
+### 🎯 개발 목표 및 학습 포인트
+**Spring Security 심화 학습**
+- SecurityConfig를 통한 세밀한 보안 설정 구현
+- JWT Filter Chain을 활용한 토큰 기반 인증 시스템 구축
+- 로그인 상태에 따른 API 접근 권한 제어 (인증 필요/불필요 API 분리)
+
+**예외 처리 및 에러 응답 개선**
+- 단순한 HTTP 500 에러가 아닌 세분화된 에러 코드 제공
+- 프론트엔드에서 활용 가능한 구체적인 에러 메시지 전달
+- GlobalExceptionHandler를 통한 일관된 예외 처리 체계 구축
+
+**보안 중심 개발**
+- Config와 Filter를 활용한 악의적 API 요청 차단
+- 인증/인가 과정에서 발생할 수 있는 다양한 예외 상황 대응
+- 실무 수준의 보안 고려사항 적용 (계정 잠금, 토큰 관리 등)
+
+
+### 과제 요구사항 구현
+- **사용자 정보 관리**: 이메일, 닉네임, 비밀번호, 이름, 전화번호
+- **회원가입**: 필수 정보 입력/검증, 중복 가입 방지
+- **로그인**: 이메일 기반 인증, JWT 토큰 방식
+- **내 정보 조회**: 로그인된 사용자 프로필 조회 (비밀번호 제외)
+- **비밀번호 재설정**: 비로그인 상태에서 비밀번호 변경
+
+### 추가 구현 기능
+- 
+-
+
+---
+
+## 🚀 2. 실행 방법
+
+### 사전 요구사항
+- Java 17 이상
+- Docker & Docker Compose
+- `application.yml`, `LoginApplication` 파일이 있는 `login`프로젝트 파일
+
+### 설치 및 구동 가이드
+
+```bash
+# 1. 프로젝트 루트 디렉토리에서 ./gradlew build (맥, 리눅스) 또는 
+# .\gradlew.bat build (윈도우) 명령어를 실행하여 빌드합니다. 
+
+# 2. Docker Compose로 MySQL을 실행합니다.
+docker-compose up -d
+
+# 3. 애플리케이션을 실행합니다.
+./gradlew bootRun
+```
+
+### 접속 정보
+- **애플리케이션**: http://localhost:8080
+- **데이터베이스**: localhost:3307 (username: userservice, password: userpass)
+
+---
+
+## 🛠️ 3. 사용 기술 스택
+
+### Backend
+| 기술 | 버전 | 용도 |
+|------|------|------|
+| Spring Boot | 3.5.4 | 메인 프레임워크 |
+| Spring Security | 6.x | 인증/인가 |
+| Spring Data JPA | 3.x | 데이터 액세스 |
+| JWT | 0.11.5 | 토큰 기반 인증 |
+| MySQL | 8.0 | 데이터베이스 |
+| JavaMailSender | - | 이메일 발송 |
+
+### Frontend
+| 기술 | 버전 | 용도 |
+|------|------|------|
+| Thymeleaf | 3.x | 템플릿 엔진 |
+| Bootstrap | 5.3 | UI 프레임워크 |
+| JavaScript | ES6+ | 클라이언트 로직 |
+
+### DevOps
+| 기술 | 버전 | 용도 |
+|------|------|------|
+| Docker | - | MySQL 데이터베이스 컨테이너 |
+| Docker Compose | - | 로컬 개발 환경 |
+
+---
+
+## 📡 4. API 명세서
+
+### 🔐 인증 관련 API
+
+#### 로그인
+```http
+POST /api/v1/auth/login
+Content-Type: application/json
+```
+
+**요청**
+```json
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
+```
+
+**응답**
+```json
+{
+  "success": true,
+  "message": "로그인 성공",
+  "data": {
+    "accessToken": "eyJhbGciOiJIUzI1NiJ9...",
+    "user": {
+      "email": "user@example.com",
+      "nickname": "사용자닉네임"
+    }
+  }
+}
+```
+
+#### 토큰 갱신
+```http
+POST /api/v1/auth/refresh
+```
+
+#### 로그아웃
+```http
+POST /api/v1/auth/logout
+```
+
+### 👤 사용자 관리 API
+
+#### 회원가입
+```http
+POST /api/v1/users
+Content-Type: application/json
+```
+
+**요청**
+```json
+{
+  "email": "user@example.com",
+  "nickname": "닉네임",  
+  "password": "password123",
+  "name": "홍길동",
+  "phone": "010-1234-5678"
+}
+```
+
+#### 이메일 중복 확인
+```http
+GET /api/v1/users?email=user@example.com
+```
+
+#### 내 정보 조회
+```http
+GET /api/v1/users/me
+Authorization: Bearer {accessToken}
+```
+
+**응답**
+```json
+{
+  "success": true,
+  "data": {
+    "user": {
+      "email": "user@example.com",
+      "nickname": "닉네임",
+      "name": "홍길동", 
+      "phone": "010-1234-5678"
+    }
+  }
+}
+```
+
+#### 비밀번호 재설정
+```http
+PUT /api/v1/users/password
+Content-Type: application/json
+```
+
+**요청**
+```json
+{
+  "email": "user@example.com",
+  "newPassword": "newPassword123"
+}
+```
+
+### 📧 이메일 인증 API (추가 구현)
+
+#### 인증번호 발송
+```http
+POST /api/v1/auth/email/send
+```
+
+#### 인증번호 확인
+```http
+POST /api/v1/auth/email/verify
+```
+
+---
+
+## ✅ 5. 구현 범위
+
+### 📋 필수 요구사항 (100% 완료)
+
+#### 사용자 정보 관리
+- [X] 이메일(Email) 필드
+- [x] 닉네임(Nickname) 필드
+- [x] 비밀번호(Password) 필드
+- [x] 이름(Name) 필드
+- [x] 전화번호(Phone Number) 필드
+
+#### 기능 요구사항
+**회원가입 기능**
+    - [x] 회원가입 절차 구현
+    - [x] 모든 필수 정보 입력 및 검증
+    - [x] 중복 가입 방지 로직 (이메일 기준)
+
+**로그인 기능**
+    - [X] 이메일 + 비밀번호 조합 로그인
+    - [X] JWT 기반 인증 구현
+    - [X] Access Token / Refresh Token 이중 구조
+
+**내 정보 조회 기능**
+    - [X] 로그인된 사용자 프로필 정보 조회
+    - [X] 민감한 정보(비밀번호) 제외하고 반환
+
+**비밀번호 재설정 기능**
+    - [X] 비로그인 상태에서 비밀번호 재설정 가능
+    - [X] 새 비밀번호 설정 및 업데이트
+
+### 🌟 추가 구현 사항
+
+#### 보안 강화 기능
+- [X] 계정 잠금 시스템 (5회 로그인 실패 시)
+- [X] 이메일 인증 시스템 (6자리 인증번호)
+- [X] 실제 SMTP 이메일 발송
+- [X] BCrypt 비밀번호 암호화
+- [X] HttpOnly 쿠키를 통한 안전한 토큰 저장
+
+#### 시스템 최적화
+- [x] MySQL 트리거를 통한 사용자 활동 추적
+- [x] RESTful API 설계 원칙 준수
+- [X] 계층별 책임 분리 (Controller-Service-Repository)
+- [X] 예외 처리 체계화
+
+---
+
+## 🎯 6. 특별히 신경 쓴 부분
+
+### 💡 코드 리뷰 시 중점 확인 부분
+
+#### 🛡️ 보안 측면
+- **JWT 이중 토큰 구조**: Access Token(짧은 만료) + Refresh Token(긴 만료)으로 보안성 향상
+- **계정 보안**: 5회 로그인 실패 시 자동 계정 잠금으로 브루트포스 공격 방어
+- **비밀번호 암호화**: BCrypt를 사용한 안전한 비밀번호 저장
+- **SQL Injection 방지**: JPA 기반 안전한 데이터 액세스
+
+#### 🏗️ 아키텍처 측면
+- **RESTful API 설계**: HTTP 메서드와 상태 코드를 올바르게 사용
+- **계층별 책임 분리**: Controller-Service-Repository 패턴 적용
+- **단일 책임 원칙**: 각 클래스와 메서드가 명확한 하나의 역할만 수행
+- **예외 처리 체계**: 도메인별 커스텀 예외와 글로벌 예외 핸들러
+
+#### 📝 코드 품질 측면
+- **가독성**: JavaDoc 주석과 명확한 메서드명으로 코드 의도 표현
+- **유지보수성**: 모듈화된 구조로 기능 추가/수정 용이
+- **타입 안전성**: 제네릭과 DTO를 활용한 컴파일 타임 검증
+- **일관성**: 통일된 응답 형식과 네이밍 컨벤션
+
+---
+
+## 🌟 7. 추가 구현 사항
+
+### 요구사항 외 창의적 기능 및 완성도
+
+#### 🔒 고급 보안 기능
+- **이메일 인증 시스템**: 회원가입 시 6자리 인증번호로 이메일 소유권 확인
+- **계정 잠금**: 로그인 5회 실패 시 자동 잠금, 비밀번호 재설정으로 해제
+- **MySQL 트리거**: DB 레벨에서 사용자 활동 시간 자동 추적
+- **쿨다운 시스템**: 이메일 발송 60초 제한으로 스팸 방지
+
+#### 🎨 사용자 경험 개선
+- **3단계 비밀번호 재설정**: 이메일 인증 → 비밀번호 설정 → 완료 프로세스
+- **실시간 검증**: 이메일 중복 확인, 비밀번호 일치 확인
+- **진행 상태 표시**: 단계별 진행 상황 시각화
+- **자동 리다이렉트**: 로그인 상태에 따른 적절한 페이지 이동
+
+#### ⚡ 성능 및 안정성
+- **토큰 자동 갱신**: 만료 전 자동 토큰 갱신으로 끊김없는 사용자 경험
+- **트랜잭션 관리**: @Transactional을 통한 데이터 일관성 보장
+- **타임존 설정**: Asia/Seoul 설정으로 정확한 시간 관리
+- **Docker 환경**: 개발 환경 표준화 및 배포 용이성
+
+---
+
+## 📁 프로젝트 구조
+
+```
+📦src
+ ┣ 📂main
+ ┃ ┣ 📂java
+ ┃ ┃ ┗ 📂hashsnap
+ ┃ ┃ ┃ ┣ 📂global                    # 전역 공통 컴포넌트
+ ┃ ┃ ┃ ┃ ┣ 📂controller
+ ┃ ┃ ┃ ┃ ┃ ┗ 📜ApiController.java    # 공통 API 컨트롤러 부모 클래스
+ ┃ ┃ ┃ ┃ ┣ 📂exception               # 글로벌 예외 처리
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜BusinessException.java
+ ┃ ┃ ┃ ┃ ┃ ┗ 📜GlobalExceptionHandler.java
+ ┃ ┃ ┃ ┃ ┣ 📂response               # 공통 응답 구조
+ ┃ ┃ ┃ ┃ ┃ ┗ 📜ApiResponse.java
+ ┃ ┃ ┃ ┃ ┣ 📂security               # 보안 관련 공통 클래스
+ ┃ ┃ ┃ ┃ ┃ ┗ 📜UserDetailsImpl.java
+ ┃ ┃ ┃ ┃ ┗ 📂util                   # 공통 유틸리티
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜JwtUtil.java
+ ┃ ┃ ┃ ┃ ┃ ┗ 📜ResponseUtils.java
+ ┃ ┃ ┃ ┗ 📂login                     # 로그인 도메인 모듈
+ ┃ ┃ ┃ ┃ ┣ 📂conifg                 # 로그인 관련 설정
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜CommonConfig.java
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜JwtAuthenticationFilter.java
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜JwtFilterConfig.java
+ ┃ ┃ ┃ ┃ ┃ ┗ 📜SecurityConfig.java
+ ┃ ┃ ┃ ┃ ┣ 📂controller             # 도메인 컨트롤러
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜AuthController.java
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜PageController.java
+ ┃ ┃ ┃ ┃ ┃ ┗ 📜UserController.java
+ ┃ ┃ ┃ ┃ ┣ 📂dto                    # 데이터 전송 객체
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜EmailCheckResponseDto.java
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜EmailSendRequestDto.java
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜EmailVerificationDto.java
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜EmailVerifyRequestDto.java
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜LoginRequestDto.java
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜LoginResponseDto.java
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜PasswordResetDto.java
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜SignupRequestDto.java
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜TokenRefreshResponseDto.java
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜UserInfoResponseDto.java
+ ┃ ┃ ┃ ┃ ┃ ┗ 📜UserStatusResponseDto.java
+ ┃ ┃ ┃ ┃ ┣ 📂entity                 # JPA 엔티티
+ ┃ ┃ ┃ ┃ ┃ ┗ 📜User.java
+ ┃ ┃ ┃ ┃ ┣ 📂exception              # 도메인 예외
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜AuthException.java
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜EmailVerificationException.java
+ ┃ ┃ ┃ ┃ ┃ ┗ 📜UserException.java
+ ┃ ┃ ┃ ┃ ┣ 📂repository             # 데이터 액세스
+ ┃ ┃ ┃ ┃ ┃ ┗ 📜UserRepository.java
+ ┃ ┃ ┃ ┃ ┣ 📂service                # 비즈니스 로직
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜AuthService.java
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜EmailVerificationService.java
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜RefreshTokenService.java
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜UserAuthenticationService.java
+ ┃ ┃ ┃ ┃ ┃ ┗ 📜UserService.java
+ ┃ ┃ ┃ ┃ ┗ 📜LoginApplication.java   # 메인 애플리케이션
+ ┃ ┗ 📂resources
+ ┃ ┃ ┣ 📂static                      # 정적 리소스
+ ┃ ┃ ┣ 📂templates                   # Thymeleaf 템플릿
+ ┃ ┃ ┃ ┣ 📜findPwd.html
+ ┃ ┃ ┃ ┣ 📜index.html
+ ┃ ┃ ┃ ┣ 📜login.html
+ ┃ ┃ ┃ ┣ 📜register.html
+ ┃ ┃ ┃ ┗ 📜userPage.html
+ ┃ ┃ ┗ 📜application.yml            # 애플리케이션 설정
+ ┗ 📂docker                          # Docker 관련 파일
+ ┃ ┗ 📜init.sql                     # DB 초기화 스크립트
+ ┣ 📜docker-compose.yml              # MySQL 컨테이너 설정
+ ┗ 📜README.md                       # 프로젝트 문서
+```
+
+---
+## 🔄 개발 과정
+
+### Issue 기반 개발 프로세스
+이 프로젝트는 GitHub Issue를 통한 개발 프로세스로 진행되었습니다.
+
+**전체 이슈 목록**: [GitHub Issues](https://github.com/Yeram522/spring-security-login/issues?q=is%3Aissue%20state%3Aclosed)
+
+**개발 워크플로우**
+
+1. **이슈 생성** - 구현할 기능별로 상세한 요구사항 정의
+2. **브랜치 생성** - 이슈별 전용 브랜치 생성
+3. **기능 구현** - 단계별 커밋으로 개발 과정 기록
+4. **Pull Request** - 구현 완료 후 상세한 개발일지와 함께 PR 생성
+5. **브랜치 병합** - 코드 리뷰 후 메인 브랜치 병합
+
+각 Pull Request에는 해당 이슈의 구현 내용과 상세한 개발 과정이 문서화되어 있습니다.
+
+**전체 PR 목록**: [GitHub Pull Requests](https://github.com/Yeram522/spring-security-login/pulls?q=is%3Apr+is%3Aclosed)
+
+---
+
+## 👨‍💻 개발자
+
+**Yeram522**
+- GitHub: [@Yeram522](https://github.com/Yeram522)
