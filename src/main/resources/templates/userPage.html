@@ -78,9 +78,8 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const token = localStorage.getItem('accessToken');
-        const userEmail = localStorage.getItem('userEmail');
 
-        if (!token || !userEmail) {
+        if (!token) {
             alert('로그인이 필요합니다.');
             window.location.href = '/login';
             return;
@@ -91,13 +90,18 @@
 
     function loadUserInfo() {
         const token = localStorage.getItem('accessToken');
-        const userEmail = localStorage.getItem('userEmail');
+
+        if (!token) {
+            alert('로그인이 필요합니다.');
+            window.location.href = '/login';
+            return;
+        }
 
         document.getElementById('loadingSpinner').style.display = 'flex';
         document.getElementById('userInfoCard').style.display = 'none';
         document.getElementById('errorMessage').style.display = 'none';
 
-        fetch(`/api/v1/users/profile?email=${encodeURIComponent(userEmail)}`, {
+        fetch('/api/v1/users/me', {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -110,11 +114,20 @@
                     localStorage.removeItem('accessToken');
                     localStorage.removeItem('userEmail');
                     window.location.href = '/login';
-                    return;
+                    return null;
                 }
+
+                if (response.status === 403) {
+                    alert('접근 권한이 없습니다.');
+                    window.location.href = '/login';
+                    return null;
+                }
+
                 return response.json();
             })
             .then(data => {
+                if (data === null) return; // 401, 403 에러 시 early return
+
                 if (data && data.success) {
                     displayUserInfo(data.data);
                 } else {
@@ -156,6 +169,11 @@
     function performLogout() {
         const token = localStorage.getItem('accessToken');
 
+        if (!token) {
+            cleanupClientData();
+            return;
+        }
+
         fetch('/api/v1/auth/logout', {
             method: 'POST',
             headers: {
@@ -164,12 +182,19 @@
             },
             credentials: 'include'
         })
-            .then(response => response.json())
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    console.log('서버 로그아웃 실패, 상태코드:', response.status);
+                    return null;
+                }
+            })
             .then(data => {
-                if (data.success) {
+                if (data && data.success) {
                     console.log('서버 로그아웃 성공');
                 } else {
-                    console.log('서버 로그아웃 실패:', data.message);
+                    console.log('서버 로그아웃 실패:', data?.message || 'Unknown error');
                 }
             })
             .catch(error => {

@@ -150,13 +150,12 @@
         btn.disabled = true;
         btn.textContent = '발송 중...';
 
-        fetch('/api/v1/auth/email-verification', {
+        fetch('/api/v1/auth/email/send', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                action: 'send',
                 purpose: "password-reset",
                 email: email
             })
@@ -191,13 +190,12 @@
             return;
         }
 
-        fetch('/api/v1/auth/email-verification', {
+        fetch('/api/v1/auth/email/verify', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                action: 'verify',
                 purpose: 'password-reset',
                 email: verifiedEmail,
                 verificationCode: verificationCode
