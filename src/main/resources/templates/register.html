@@ -158,13 +158,12 @@
         const btn = this;
         btn.disabled = true;
 
-        fetch('/api/v1/auth/email-verification', {
+        fetch('/api/v1/auth/email/send', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                action: 'send',
                 purpose: "signup",
                 email: email
             })
@@ -212,13 +211,12 @@
             return;
         }
 
-        fetch('/api/v1/auth/email-verification', {
+        fetch('/api/v1/auth/email/verify', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                action: 'verify',
                 purpose: "signup",
                 email: email,
                 verificationCode: verificationCode

@@ -1,8 +1,10 @@
 package hashsnap.login.service;
 
 import hashsnap.login.exception.EmailVerificationException;
+import hashsnap.login.repository.UserRepository;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
@@ -17,8 +19,11 @@ import java.time.temporal.ChronoUnit;
  * HttpSession을 활용한 임시 인증 상태 관리 (5분 만료)
  */
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class EmailVerificationService {
+
+    private final UserRepository userRepository;
 
     private final JavaMailSender mailSender;
 
@@ -37,17 +42,28 @@ public class EmailVerificationService {
 
     // 인증번호 발송
     public void sendVerificationCode(String email, String purpose) {
-        String verificationCode = generateVerificationCode();
+        // password-reset인 경우 사용자 존재 여부 확인
+        if ("password-reset".equals(purpose) && !userRepository.existsByEmail(email)) {
+            throw new EmailVerificationException("존재하지 않는 메일입니다");
+        }
 
-        // 세션에 인증번호와 생성시간 저장
-        String sessionKey = VERIFICATION_CODE_PREFIX + purpose + "_" + email;
-        String timeKey = VERIFICATION_TIME_PREFIX + purpose + "_" + email;
+        try {
+            String verificationCode = generateVerificationCode();
 
-        session.setAttribute(sessionKey, verificationCode);
-        session.setAttribute(timeKey, LocalDateTime.now());
+            // 세션에 인증번호와 생성시간 저장
+            String sessionKey = VERIFICATION_CODE_PREFIX + purpose + "_" + email;
+            String timeKey = VERIFICATION_TIME_PREFIX + purpose + "_" + email;
 
-        // 이메일 발송
-        sendEmail(email, verificationCode, purpose);
+            session.setAttribute(sessionKey, verificationCode);
+            session.setAttribute(timeKey, LocalDateTime.now());
+
+            // 이메일 발송
+            sendEmail(email, verificationCode, purpose);
+
+        }catch (Exception e) {
+            log.error("이메일 발송 실패: email={}, purpose={}", email, purpose, e);
+            throw new EmailVerificationException("이메일 발송에 실패했습니다");
+        }
     }
 
     // 이메일 발송 실제 로직
@@ -99,39 +115,64 @@ public class EmailVerificationService {
     }
 
     // 인증번호 검증
-    public boolean verifyCode(String email, String inputCode, String purpose) {
+    public void verifyCode(String email, String verificationCode, String purpose) {
+        // 1. 기본 검증
+        validateInput(verificationCode);
+
+        // 2. 세션 데이터 조회 및 검증
+        String[] sessionData = getAndValidateSession(email, purpose);
+        String storedCode = sessionData[0];
+
+        // 3. 인증번호 확인
+        if (!storedCode.equals(verificationCode)) {
+            throw new EmailVerificationException("인증번호가 일치하지 않습니다");
+        }
+
+        // 4. 성공 처리
+        handleSuccessfulVerification(email, purpose);
+    }
+
+    private void validateInput(String verificationCode) {
+        if (verificationCode == null || verificationCode.trim().isEmpty()) {
+            throw new EmailVerificationException("인증번호를 입력해주세요");
+        }
+    }
+
+    private String[] getAndValidateSession(String email, String purpose) {
         String sessionKey = VERIFICATION_CODE_PREFIX + purpose + "_" + email;
         String timeKey = VERIFICATION_TIME_PREFIX + purpose + "_" + email;
 
         String storedCode = (String) session.getAttribute(sessionKey);
         LocalDateTime createdTime = (LocalDateTime) session.getAttribute(timeKey);
 
-        // 세션에 인증번호가 없는 경우
+        // 존재 여부 확인
         if (storedCode == null || createdTime == null) {
             throw new EmailVerificationException("인증번호를 먼저 발송해주세요");
         }
 
-        // 인증번호 만료 체크 (5분)
+        // 만료 확인
         if (ChronoUnit.MINUTES.between(createdTime, LocalDateTime.now()) > CODE_EXPIRY_MINUTES) {
-            // 만료된 인증번호 세션에서 제거
-            session.removeAttribute(sessionKey);
-            session.removeAttribute(timeKey);
+            clearSession(sessionKey, timeKey);
             throw new EmailVerificationException("인증번호가 만료되었습니다. 새로운 인증번호를 요청해주세요");
         }
 
-        // 인증번호 일치 확인
-        boolean isValid = storedCode.equals(inputCode);
+        return new String[]{storedCode};
+    }
 
-        if (isValid) {
-            // 인증 성공 시 세션에서 제거
-            session.removeAttribute(sessionKey);
-            session.removeAttribute(timeKey);
+    private void clearSession(String sessionKey, String timeKey) {
+        session.removeAttribute(sessionKey);
+        session.removeAttribute(timeKey);
+    }
 
-            // 인증 완료 표시 (필요한 경우)
-            session.setAttribute("email_verified_" + purpose + "_" + email, true);
-        }
+    private void handleSuccessfulVerification(String email, String purpose) {
+        String sessionKey = VERIFICATION_CODE_PREFIX + purpose + "_" + email;
+        String timeKey = VERIFICATION_TIME_PREFIX + purpose + "_" + email;
 
-        return isValid;
+        // 인증 세션 정리
+        clearSession(sessionKey, timeKey);
+
+        // 인증 완료 표시
+        session.setAttribute("email_verified_" + purpose + "_" + email, true);
     }
 
     // 이메일 인증 완료 여부 확인

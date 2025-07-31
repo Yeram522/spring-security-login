@@ -2,6 +2,7 @@ package hashsnap.login.controller;
 
 import hashsnap.global.controller.ApiController;
 import hashsnap.global.response.ApiResponse;
+import hashsnap.global.security.UserDetailsImpl;
 import hashsnap.global.util.ResponseUtils;
 import hashsnap.login.dto.*;
 import hashsnap.login.service.UserService;
@@ -9,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -49,12 +51,15 @@ public class UserController extends ApiController {
     }
 
     /**
-     * 유저 프로필 조회 API
-     * @param email 유저 이메일
+     * 현재 로그인한 사용자 정보 조회 API
+     * @param userDetails 인증된 사용자 정보
      * @return UserInfoResponseDto
      */
-    @GetMapping("users/profile")
-    public ResponseEntity<ApiResponse<UserInfoResponseDto>> getUserProfile(@RequestParam String email) {
+    @GetMapping("/users/me")
+    public ResponseEntity<ApiResponse<UserInfoResponseDto>> getCurrentUserInfo(
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+
+        String email = userDetails.getUsername(); // 이메일
         UserInfoResponseDto userInfo = userService.getUserInfo(email);
         return ResponseUtils.ok("사용자 정보 조회 성공", userInfo);
     }

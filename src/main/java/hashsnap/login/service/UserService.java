@@ -170,7 +170,6 @@ public class UserService {
         // 5회 이상 실패 시 계정 잠금
         if (newCount >= 5) {
             user.setStatus(User.UserStatus.SUSPENDED);
-            user.setEnabled(false);
             log.warn("계정 잠금 처리: email={}, 실패횟수={}", email, newCount);
         }
 
