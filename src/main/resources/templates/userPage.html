@@ -17,19 +17,16 @@
 <div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-8">
-            <!-- 환영 메시지 -->
             <div class="alert alert-primary text-center">
                 <h3 id="welcomeMessage">안녕하세요! 사용자님!</h3>
             </div>
 
-            <!-- 로딩 스피너 -->
             <div id="loadingSpinner" class="loading-spinner">
                 <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">Loading...</span>
                 </div>
             </div>
 
-            <!-- 사용자 정보 카드 -->
             <div id="userInfoCard" class="card" style="display: none;">
                 <div class="card-header">
                     <h5 class="card-title mb-0">내 정보</h5>
@@ -65,14 +62,12 @@
                 </div>
             </div>
 
-            <!-- 오류 메시지 -->
             <div id="errorMessage" class="alert alert-danger" style="display: none;">
                 <h5>오류가 발생했습니다</h5>
                 <p id="errorText">사용자 정보를 불러올 수 없습니다.</p>
                 <button class="btn btn-primary" onclick="loadUserInfo()">다시 시도</button>
             </div>
 
-            <!-- 로그아웃 버튼 -->
             <div class="text-center mt-4">
                 <button class="btn btn-outline-danger btn-lg" id="logoutBtn">로그아웃</button>
             </div>
@@ -81,9 +76,7 @@
 </div>
 
 <script>
-    // 페이지 로드 시 사용자 정보 가져오기
     document.addEventListener('DOMContentLoaded', function() {
-        // 로그인 체크
         const token = localStorage.getItem('accessToken');
         const userEmail = localStorage.getItem('userEmail');
 
@@ -96,18 +89,15 @@
         loadUserInfo();
     });
 
-    // 사용자 정보 로드 함수
     function loadUserInfo() {
         const token = localStorage.getItem('accessToken');
         const userEmail = localStorage.getItem('userEmail');
 
-        // 로딩 스피너 표시
         document.getElementById('loadingSpinner').style.display = 'flex';
         document.getElementById('userInfoCard').style.display = 'none';
         document.getElementById('errorMessage').style.display = 'none';
 
-        // API 호출로 사용자 정보 가져오기
-        fetch(`/api/users/profile?email=${encodeURIComponent(userEmail)}`, {
+        fetch(`/api/v1/users/profile?email=${encodeURIComponent(userEmail)}`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -116,7 +106,6 @@
         })
             .then(response => {
                 if (response.status === 401) {
-                    // 토큰 만료 또는 무효
                     alert('로그인이 만료되었습니다. 다시 로그인해주세요.');
                     localStorage.removeItem('accessToken');
                     localStorage.removeItem('userEmail');
@@ -138,23 +127,19 @@
             });
     }
 
-    // 사용자 정보 화면에 표시
     function displayUserInfo(user) {
-        // 로딩 스피너 숨기기
         document.getElementById('loadingSpinner').style.display = 'none';
 
         document.getElementById('welcomeMessage').textContent = `안녕하세요! ${user.nickname || user.username || '사용자'}님!`;
 
-        // 사용자 정보 업데이트
         document.getElementById('userEmail').textContent = user.email || '-';
         document.getElementById('userNickname').textContent = user.nickname || '-';
         document.getElementById('userName').textContent = user.username || '-';
         document.getElementById('userPhone').textContent = user.phone || '-';
 
-        // 사용자 정보 카드 표시
         document.getElementById('userInfoCard').style.display = 'block';
     }
-    // 오류 메시지 표시
+
     function showError(message) {
         document.getElementById('loadingSpinner').style.display = 'none';
         document.getElementById('userInfoCard').style.display = 'none';
@@ -162,24 +147,22 @@
         document.getElementById('errorMessage').style.display = 'block';
     }
 
-    // 로그아웃 버튼 이벤트
     document.getElementById('logoutBtn').addEventListener('click', function() {
         if (confirm('로그아웃 하시겠습니까?')) {
             performLogout();
         }
     });
 
-    // 로그아웃 처리 함수
     function performLogout() {
         const token = localStorage.getItem('accessToken');
 
-        // 서버에 로그아웃 요청
-        fetch('api/auth/logout', {
+        fetch('/api/v1/auth/logout', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
-            }
+            },
+            credentials: 'include'
         })
             .then(response => response.json())
             .then(data => {
@@ -191,21 +174,16 @@
             })
             .catch(error => {
                 console.error('로그아웃 요청 오류:', error);
-                // 네트워크 오류가 있어도 클라이언트 정리는 진행
             })
             .finally(() => {
-                // 서버 요청 성공/실패와 관계없이 클라이언트 정리
                 cleanupClientData();
             });
     }
 
-    // 클라이언트 데이터 정리 및 리다이렉트
     function cleanupClientData() {
-        // localStorage 정리
         localStorage.removeItem('accessToken');
         localStorage.removeItem('userEmail');
 
-        // 로그인 페이지로 리다이렉트
         alert('로그아웃되었습니다.');
         window.location.href = '/login';
     }
