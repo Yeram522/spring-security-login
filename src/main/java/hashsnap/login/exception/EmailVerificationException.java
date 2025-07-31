@@ -1,33 +1,21 @@
 package hashsnap.login.exception;
 
 import hashsnap.global.exception.BusinessException;
+import org.springframework.http.HttpStatus;
 
+/**
+ * 이메일 인증 관련 예외 클래스
+ * 인증번호 발송, 검증 과정에서 발생하는 비즈니스 예외 처리
+ *
+ * 주요 발생 상황:
+ * - 인증번호 만료 시
+ * - 잘못된 인증번호 입력 시
+ * - 이메일 발송 실패 시
+ * - 인증 상태 불일치 시
+ */
 public class EmailVerificationException extends BusinessException {
 
     public EmailVerificationException(String message) {
-        super("EMAIL_VERIFICATION_ERROR", message, 400);
-    }
-
-    public EmailVerificationException(String message, Throwable cause) {
-        super("EMAIL_VERIFICATION_ERROR", message, 400, cause);
-    }
-
-    // 구체적인 에러 타입들
-    public static class CodeExpiredException extends EmailVerificationException {
-        public CodeExpiredException() {
-            super("인증번호가 만료되었습니다");
-        }
-    }
-
-    public static class CodeMismatchException extends EmailVerificationException {
-        public CodeMismatchException() {
-            super("인증번호가 일치하지 않습니다");
-        }
-    }
-
-    public static class SendFailedException extends EmailVerificationException {
-        public SendFailedException(Throwable cause) {
-            super("인증번호 발송에 실패했습니다", cause);
-        }
+        super(message, "EMAIL_VERIFICATION_FAILED", HttpStatus.BAD_REQUEST);
     }
 }

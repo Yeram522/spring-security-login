@@ -1,22 +1,52 @@
 package hashsnap.login.exception;
 
 import hashsnap.global.exception.BusinessException;
+import org.springframework.http.HttpStatus;
 
-public class AuthException extends BusinessException {
+/**
+ * 인증 관련 예외 클래스
+ * JWT 토큰, 로그인 인증 등 인증 프로세스에서 발생하는 예외들
+ * 중첩 클래스로 세분화된 예외 타입 제공
+ */
+public class AuthException {
 
-    public AuthException(String message) {
-        super("AUTH_ERROR", message, 401);
-    }
-
-    public static class InvalidCredentialsException extends AuthException {
+    public static class InvalidCredentialsException extends BusinessException {
         public InvalidCredentialsException() {
-            super("아이디 또는 비밀번호가 잘못되었습니다");
+            super("인증 정보가 올바르지 않습니다", "INVALID_CREDENTIALS", HttpStatus.UNAUTHORIZED);
+        }
+
+        public InvalidCredentialsException(String message) {
+            super(message, "INVALID_CREDENTIALS", HttpStatus.UNAUTHORIZED);
         }
     }
 
-    public static class TokenExpiredException extends AuthException {
+    public static class InvalidTokenException extends BusinessException {
+        public InvalidTokenException() {
+            super("유효하지 않은 토큰입니다", "INVALID_TOKEN", HttpStatus.UNAUTHORIZED);
+        }
+
+        public InvalidTokenException(String message) {
+            super(message, "INVALID_TOKEN", HttpStatus.UNAUTHORIZED);
+        }
+    }
+
+    public static class TokenExpiredException extends BusinessException {
         public TokenExpiredException() {
-            super("토큰이 만료되었습니다");
+            super("토큰이 만료되었습니다", "TOKEN_EXPIRED", HttpStatus.UNAUTHORIZED);
+        }
+
+        public TokenExpiredException(String message) {
+            super(message, "TOKEN_EXPIRED", HttpStatus.UNAUTHORIZED);
+        }
+    }
+
+    public static class AccessDeniedException extends BusinessException {
+        public AccessDeniedException() {
+            super("접근 권한이 없습니다", "ACCESS_DENIED", HttpStatus.FORBIDDEN);
+        }
+
+        public AccessDeniedException(String message) {
+            super(message, "ACCESS_DENIED", HttpStatus.FORBIDDEN);
         }
     }
 }
