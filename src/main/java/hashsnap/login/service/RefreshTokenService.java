@@ -41,7 +41,7 @@ public class RefreshTokenService {
         }
 
         try {
-            User user = userRepository.findByEmail(email)
+            User user = userRepository.findActiveUserByEmail(email)
                     .orElseThrow(() -> {
                         log.warn("사용자를 찾을 수 없음: email={}", email);
                         return new UserNotFoundException("사용자를 찾을 수 없습니다: " + email);
@@ -79,7 +79,7 @@ public class RefreshTokenService {
         }
 
         try {
-            User user = userRepository.findByEmail(email)
+            User user = userRepository.findActiveUserByEmail(email)
                     .orElseThrow(() -> {
                         log.warn("사용자를 찾을 수 없음: email={}", email);
                         return new UserNotFoundException("사용자를 찾을 수 없습니다: " + email);
@@ -119,7 +119,7 @@ public class RefreshTokenService {
         }
 
         try {
-            User user = userRepository.findByEmail(email)
+            User user = userRepository.findActiveUserByEmail(email)
                     .orElseThrow(() -> {
                         log.warn("사용자를 찾을 수 없음: email={}", email);
                         return new UserNotFoundException("사용자를 찾을 수 없습니다: " + email);
@@ -150,7 +150,7 @@ public class RefreshTokenService {
         }
 
         try {
-            User user = userRepository.findByEmail(email)
+            User user = userRepository.findActiveUserByEmail(email)
                     .orElseThrow(() -> {
                         log.warn("사용자를 찾을 수 없음: email={}", email);
                         return new UserNotFoundException("사용자를 찾을 수 없습니다: " + email);
