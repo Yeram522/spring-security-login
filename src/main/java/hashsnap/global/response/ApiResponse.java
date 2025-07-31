@@ -9,8 +9,32 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ApiResponse { // 공통 응답 DTO (AJAX 응답용)
+public class ApiResponse<T> {
     private boolean success;
     private String message;
-    private Object data;
+    private T data;
+
+    // 성공 응답 팩토리 메서드들
+    public static <T> ApiResponse<T> success(String message) {
+        return ApiResponse.<T>builder()
+                .success(true)
+                .message(message)
+                .build();
+    }
+
+    public static <T> ApiResponse<T> success(String message, T data) {
+        return ApiResponse.<T>builder()
+                .success(true)
+                .message(message)
+                .data(data)
+                .build();
+    }
+
+    // 실패 응답 팩토리 메서드
+    public static <T> ApiResponse<T> error(String message) {
+        return ApiResponse.<T>builder()
+                .success(false)
+                .message(message)
+                .build();
+    }
 }

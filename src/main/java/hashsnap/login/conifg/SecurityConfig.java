@@ -42,17 +42,17 @@ public class SecurityConfig {
                         .requestMatchers("/login", "/register", "/", "/userPage","/findPwd").permitAll()
 
                         // === Public API (인증 불필요) ===
-                        .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()           // 로그인
-                        .requestMatchers(HttpMethod.GET, "/api/users").permitAll()                // 이메일 중복확인
-                        .requestMatchers(HttpMethod.POST, "/api/users").permitAll()               // 회원가입
-                        .requestMatchers(HttpMethod.POST, "/api/email-verification").permitAll()  // 이메일 인증
-                        .requestMatchers(HttpMethod.PUT, "/api/users/password").permitAll()     // 비밀번호 재설정
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()           // 로그인
+                        .requestMatchers(HttpMethod.GET, "/api/v1/users").permitAll()                // 이메일 중복확인
+                        .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()               // 회원가입
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/email-verification").permitAll()  // 이메일 인증
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/users/password").permitAll()     // 비밀번호 재설정
                         
 
                         // === Private API (JWT 인증 필요) ===
-                        .requestMatchers("/api/auth/refresh").authenticated()  // 토큰 갱신
-                        .requestMatchers("/api/auth/logout").authenticated()   // 로그아웃
-                        .requestMatchers("/api/**").authenticated()            // 기타 모든 API
+                        .requestMatchers("/api/v1/auth/refresh").authenticated()  // 토큰 갱신
+                        .requestMatchers("/api/v1/auth/logout").authenticated()   // 로그아웃
+                        .requestMatchers("/api/v1/**").authenticated()            // 기타 모든 API
 
                         // === 나머지 ===
                         .anyRequest().authenticated()

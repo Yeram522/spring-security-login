@@ -30,9 +30,7 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '정보 수정 시간',
 
     -- 인덱스 추가 (자주 조회되는 컬럼들)
-    INDEX idx_username (username) COMMENT '로그인 시 사용',
     INDEX idx_email (email) COMMENT '이메일로 사용자 찾기',
-    INDEX idx_nickname (nickname) COMMENT '닉네임 검색',
     INDEX idx_status (status) COMMENT '활성 사용자 조회',
     INDEX idx_refresh_token (refresh_token) COMMENT '토큰 검증 시 사용'
     ) COMMENT '사용자 정보 테이블';
@@ -44,7 +42,7 @@ INSERT IGNORE INTO users (
 ) VALUES
 (
     'testuser', '테스트유저',
-    '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.',
+    '$2a$10$e3bddd9fKxaBOWFFnTB3SO.go/2Xix7J.oSN.u124N8wim6j5uLOi',
     '010-9876-5432', 'user@example.com',
     'ACTIVE', TRUE, TRUE
 );

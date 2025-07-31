@@ -3,6 +3,8 @@ package hashsnap.login.service;
 import hashsnap.login.dto.SignupRequestDto;
 import hashsnap.login.entity.User;
 import hashsnap.login.repository.UserRepository;
+import hashsnap.login.exception.EmailVerificationException;
+import hashsnap.login.exception.UserException.DuplicateUserException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -18,21 +20,34 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final PasswordEncoder passwordEncoder;
-
+    private final EmailVerificationService emailVerificationService;
     private final UserRepository userRepository;
 
     @Transactional
     public void signup(@Valid SignupRequestDto signupRequest) {
+        // 1. 이메일 인증 확인
+        if (!emailVerificationService.isEmailVerified(signupRequest.getEmail(), "signup")) {
+            throw new EmailVerificationException("이메일 인증을 완료해주세요");
+        }
+
+        // 2. 중복 사용자 확인
+        if (userRepository.existsByEmail(signupRequest.getEmail())) {
+            throw new DuplicateUserException("이미 존재하는 이메일입니다");
+        }
+
+        // 3. 비밀번호 암호화
         // 원본 비밀번호
         String rawPassword = signupRequest.getPassword();
         // 원본 비밀번호를 암호화
         String encodedPassword = passwordEncoder.encode(rawPassword);
 
+        // 4. 사용자 저장
         User user =  User.builder()
                 .username(signupRequest.getUsername())
                 .nickname(signupRequest.getNickname())
                 .password(encodedPassword)
                 .phone(signupRequest.getPhone())
+                .emailVerified(true)
                 .email(signupRequest.getEmail())
                 .build();
 

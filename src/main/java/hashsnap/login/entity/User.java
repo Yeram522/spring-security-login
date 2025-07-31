@@ -25,10 +25,10 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "username", length = 50, nullable = false, unique = true)
-    private String username; // 로그인 아이디
+    @Column(name = "username", length = 50, nullable = false)
+    private String username; // 회원 이름
 
-    @Column(name = "nickname", length = 50, nullable = false, unique = true)
+    @Column(name = "nickname", length = 50, nullable = false)
     private String nickname; // 닉네임/표시명
 
     @Column(name = "password", length = 100, nullable = false)

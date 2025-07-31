@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Redirecting...</title>
+</head>
+<body>
+<div style="text-align: center; padding: 50px;">
+    <h3>페이지를 로딩 중입니다...</h3>
+    <div class="spinner">로딩...</div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // localStorage에서 토큰 확인
+        const accessToken = localStorage.getItem('accessToken');
+        const userEmail = localStorage.getItem('userEmail');
+
+        if (accessToken && userEmail && isTokenValid(accessToken)) {
+            // 로그인되어 있으면 마이페이지로
+            window.location.href = '/userPage';
+        } else {
+            // 로그인 안되어 있으면 로그인 페이지로
+            clearStoredTokens();
+            window.location.href = '/login';
+        }
+    });
+
+    // 토큰 유효성 체크
+    function isTokenValid(token) {
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            const currentTime = Date.now() / 1000;
+            return payload.exp > currentTime;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    // 만료된 토큰 삭제
+    function clearStoredTokens() {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('userEmail');
+    }
+</script>
+</body>
+</html>
