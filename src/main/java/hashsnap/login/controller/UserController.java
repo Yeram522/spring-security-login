@@ -11,7 +11,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-
+/**
+ * 사용자 관리 API 컨트롤러
+ * 회원가입, 프로필 조회, 비밀번호 재설정 등
+ * 사용자 관련 모든 REST API 엔드포인트 제공
+ */
 @RestController
 @Slf4j
 @RequiredArgsConstructor
@@ -25,9 +29,9 @@ public class UserController extends ApiController {
      * @return EmailCheckResponse
      */
     @GetMapping("/users")
-    public ResponseEntity<ApiResponse<EmailCheckResponse>> checkEmailDuplicate(@RequestParam String email) {
+    public ResponseEntity<ApiResponse<EmailCheckResponseDto>> checkEmailDuplicate(@RequestParam String email) {
         boolean exists = userService.isEmailExists(email);
-        EmailCheckResponse response = EmailCheckResponse.builder()
+        EmailCheckResponseDto response = EmailCheckResponseDto.builder()
                 .exists(exists)
                 .build();
         return ResponseUtils.ok("이메일 중복 확인 완료", response);

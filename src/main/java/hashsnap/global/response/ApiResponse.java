@@ -5,6 +5,13 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * 공통 API 응답 DTO
+ * 모든 REST API의 표준 응답 형식 제공
+ * 성공/실패, 메시지, 데이터를 포함한 일관된 응답 구조
+ *
+ * @param <T> 응답 데이터 타입
+ */
 @Data
 @Builder
 @NoArgsConstructor

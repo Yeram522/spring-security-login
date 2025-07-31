@@ -11,6 +11,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
 
+/**
+ * 리프레시 토큰 관리 서비스
+ * 사용자별 RefreshToken DB 저장, 검증, 삭제 처리
+ * JWT 토큰 갱신 시 보안 검증 담당
+ */
 @Service
 @Slf4j
 @RequiredArgsConstructor

@@ -1,7 +1,7 @@
 package hashsnap.login.service;
 
 import hashsnap.global.util.JwtUtil;
-import hashsnap.login.dto.LoginRequest;
+import hashsnap.login.dto.LoginRequestDto;
 import hashsnap.login.dto.LoginResponseDto;
 import hashsnap.login.entity.User;
 import hashsnap.login.exception.AuthException;
@@ -13,6 +13,11 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
+/**
+ * 인증 비즈니스 로직 서비스
+ * Spring Security 기반 사용자 인증 및 JWT 토큰 관리
+ * 로그인, 토큰 갱신, 로그아웃 프로세스 담당
+ */
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -26,8 +31,8 @@ public class AuthService {
     /**
      * 로그인 처리
      */
-    public LoginResponseDto login(LoginRequest loginRequest) {
-        String email = loginRequest.getEmail();
+    public LoginResponseDto login(LoginRequestDto loginRequestDto) {
+        String email = loginRequestDto.getEmail();
 
         try {
             // 1. 로그인 시도 전 계정 잠금 상태 확인
@@ -39,8 +44,8 @@ public class AuthService {
             // 2. 인증 시도
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            loginRequest.getEmail(),
-                            loginRequest.getPassword()
+                            loginRequestDto.getEmail(),
+                            loginRequestDto.getPassword()
                     )
             );
 

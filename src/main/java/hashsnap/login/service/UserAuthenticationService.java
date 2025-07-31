@@ -1,12 +1,17 @@
 package hashsnap.login.service;
 
 import hashsnap.login.entity.User;
-import hashsnap.login.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+
+/**
+ * Spring Security용 사용자 인증 서비스
+ * 이메일로 사용자를 조회하고 UserDetails 객체로 변환하여 반환
+ * 모든 사용자에게 기본적으로 ROLE_USER 권한을 부여함
+ */
 
 @Service
 @RequiredArgsConstructor

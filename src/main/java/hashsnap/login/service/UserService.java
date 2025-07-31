@@ -17,6 +17,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * 사용자 비즈니스 로직 서비스
+ * 회원가입, 사용자 조회, 비밀번호 관리 등 핵심 비즈니스 로직 처리
+ * BCrypt 암호화 및 이메일 인증 검증 포함
+ */
 @Service
 @Slf4j
 @RequiredArgsConstructor

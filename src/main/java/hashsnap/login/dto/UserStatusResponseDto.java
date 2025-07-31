@@ -5,7 +5,7 @@ import lombok.Data;
 
 @Data
 @Builder
-public class UserStatusResponse {
+public class UserStatusResponseDto {
     private String email;
     private boolean isActive;
 }

@@ -4,10 +4,9 @@ import hashsnap.global.controller.ApiController;
 import hashsnap.global.response.ApiResponse;
 import hashsnap.global.util.ResponseUtils;
 import hashsnap.login.dto.EmailVerificationDto;
-import hashsnap.login.dto.LoginRequest;
+import hashsnap.login.dto.LoginRequestDto;
 import hashsnap.login.dto.LoginResponseDto;
 import hashsnap.login.dto.TokenRefreshResponseDto;
-import hashsnap.login.exception.EmailVerificationException;
 import hashsnap.login.exception.EmailVerificationException;
 import hashsnap.login.service.AuthService;
 import hashsnap.login.service.EmailVerificationService;
@@ -21,6 +20,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * 인증 API 컨트롤러
+ * JWT 기반 로그인, 토큰 갱신, 로그아웃 처리, 이메일 인증
+ * HttpOnly 쿠키를 통한 안전한 RefreshToken 관리
+ */
 @RestController
 @Slf4j
 @RequiredArgsConstructor
@@ -32,16 +36,16 @@ public class AuthController extends ApiController {
 
     /**
      * 로그인 API
-     * @param loginRequest 로그인 요청 DTO
+     * @param loginRequestDto 로그인 요청 DTO
      * @param response Refresh Token을 HttpOnly 쿠키로 설정 목적
      * @return response message
      */
     @PostMapping("/auth/login")
     public ResponseEntity<ApiResponse<LoginResponseDto>> login(
-            @Valid @RequestBody LoginRequest loginRequest,
+            @Valid @RequestBody LoginRequestDto loginRequestDto,
             HttpServletResponse response) {
 
-        LoginResponseDto loginResponse = authService.login(loginRequest);
+        LoginResponseDto loginResponse = authService.login(loginRequestDto);
 
         // Refresh Token을 HttpOnly 쿠키에 저장 (보안상 응답에서 제외)
         addRefreshTokenCookie(response, loginResponse.getRefreshToken());
