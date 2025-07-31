@@ -41,6 +41,36 @@
     </div>
 </div>
 
+<!-- 계정 잠금 모달 -->
+<div class="modal fade" id="accountLockedModal" tabindex="-1" aria-labelledby="accountLockedModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="accountLockedModalLabel">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>계정 잠금
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div class="mb-3">
+                    <i class="bi bi-lock-fill" style="font-size: 3rem; color: #dc3545;"></i>
+                </div>
+                <h6 class="mb-3">계정이 잠겨있습니다</h6>
+                <p class="text-muted mb-4">
+                    로그인 시도 횟수를 초과하여 계정이 일시적으로 잠겼습니다.<br>
+                    관리자에게 문의하거나 잠시 후 다시 시도해주세요.
+                </p>
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">확인</button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="window.location.href='/findPwd'">
+                        비밀번호 재설정
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
@@ -92,6 +122,7 @@
             });
 
             const result = await response.json();
+            console.log('응답 받음:', response.status, result); // 디버깅용
 
             if (response.ok && result.success) {
                 const data = result.data;
@@ -104,14 +135,53 @@
                     window.location.href = '/userPage';
                 }, 1500);
             } else {
-                showMessage(result.message || '로그인에 실패했습니다.', 'danger');
+                // 에러 처리 - 여기서 setLoadingState(false) 호출됨
+                handleLoginError(response.status, result);
             }
         } catch (error) {
             console.error('Login error:', error);
-            showMessage('로그인 중 오류가 발생했습니다. 다시 시도해주세요.', 'danger');
-        } finally {
-            setLoadingState(false);
+            setLoadingState(false); // catch에서도 명시적으로 호출
+            showMessage('로그인 중 네트워크 오류가 발생했습니다. 다시 시도해주세요.', 'danger');
         }
+        // finally 블록 제거 - handleLoginError에서 처리하므로
+    }
+
+    function handleLoginError(status, result) {
+        console.log('handleLoginError 호출됨:', status, result); // 디버깅용
+
+        // 항상 로딩 상태 해제 (중요!)
+        setLoadingState(false);
+
+        // HTTP 상태 코드와 에러 코드로 구분 처리
+        if (status === 423 || (result.errorCode && result.errorCode === 'ACCOUNT_LOCKED')) {
+            // 계정 잠금 모달 표시
+            showAccountLockedModal();
+        } else if (status === 401 || result.errorCode === 'INVALID_CREDENTIALS') {
+            // 일반적인 로그인 실패
+            showMessage(result.message || '이메일 또는 비밀번호가 올바르지 않습니다.', 'danger');
+        } else if (status === 400) {
+            // 잘못된 요청
+            showMessage(result.message || '입력 정보를 확인해주세요.', 'danger');
+        } else {
+            // 기타 서버 오류
+            showMessage(result.message || '로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', 'danger');
+        }
+    }
+
+    function showAccountLockedModal() {
+        const modal = new bootstrap.Modal(document.getElementById('accountLockedModal'));
+        modal.show();
+
+        // 모달이 닫힐 때 폼 초기화
+        document.getElementById('accountLockedModal').addEventListener('hidden.bs.modal', function () {
+            resetForm();
+        });
+    }
+
+    function resetForm() {
+        document.getElementById('loginForm').reset();
+        document.getElementById('message').innerHTML = '';
+        setLoadingState(false);
     }
 
     function showMessage(message, type) {
@@ -126,15 +196,20 @@
 
     function setLoadingState(isLoading) {
         const loginBtn = document.getElementById('loginBtn');
-        const spinner = document.getElementById('spinner');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+
+        console.log('setLoadingState 호출됨:', isLoading); // 디버깅용
 
         if (isLoading) {
             loginBtn.disabled = true;
-            spinner.classList.remove('d-none');
-            loginBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 로그인 중...';
+            emailInput.disabled = true;
+            passwordInput.disabled = true;
+            loginBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>로그인 중...';
         } else {
             loginBtn.disabled = false;
-            spinner.classList.add('d-none');
+            emailInput.disabled = false;
+            passwordInput.disabled = false;
             loginBtn.innerHTML = 'Login';
         }
     }
@@ -154,13 +229,24 @@
         localStorage.removeItem('userEmail');
     }
 
+    // Enter 키 처리 개선
     document.addEventListener('keypress', function(event) {
         if (event.key === 'Enter') {
+            const activeElement = document.activeElement;
             const loginForm = document.getElementById('loginForm');
-            if (loginForm) {
+
+            // 폼 내의 요소에서 Enter를 눌렀을 때만 실행하고, 버튼이 비활성화되지 않았을 때만 실행
+            if (loginForm.contains(activeElement) && !document.getElementById('loginBtn').disabled) {
+                event.preventDefault();
                 loginForm.dispatchEvent(new Event('submit'));
             }
         }
+    });
+
+    // 페이지 이탈 시 토큰 정리 (선택사항)
+    window.addEventListener('beforeunload', function() {
+        // 로그인 실패로 인한 정리가 아닌 경우에만 (필요시 사용)
+        // clearStoredTokens();
     });
 </script>
 </body>
