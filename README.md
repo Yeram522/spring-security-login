@@ -244,10 +244,7 @@ POST /api/v1/auth/email/verify
 - [X] HttpOnly 쿠키를 통한 안전한 토큰 저장
 
 #### 시스템 최적화
-- [x] MySQL 트리거를 통한 사용자 활동 추적
-- [x] RESTful API 설계 원칙 준수
-- [X] 계층별 책임 분리 (Controller-Service-Repository)
-- [X] 예외 처리 체계화
+- [x] MySQL 트리거를 통한 사용자 활동 추적( 마지막 로그인 시간, 마지막 비밀번호 변경 시간 )
 
 ---
 
