@@ -1,3 +1,8 @@
+-- UTF-8 인코딩 설정
+SET NAMES utf8mb4;
+SET CHARACTER SET utf8mb4;
+SET character_set_connection=utf8mb4;
+
 -- 데이터베이스 사용
 USE userdb;
 
@@ -7,6 +12,10 @@ CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(50) NOT NULL COMMENT '이름',
     nickname VARCHAR(50) NOT NULL COMMENT '닉네임/표시명',
     password VARCHAR(100) NOT NULL COMMENT 'BCrypt 암호화된 비밀번호',
+
+    -- 권한 관리
+    authority ENUM('USER', 'ADMIN') DEFAULT 'USER' COMMENT '권한',
+
     phone VARCHAR(20) NOT NULL COMMENT '휴대폰 번호',
     email VARCHAR(100) NOT NULL UNIQUE COMMENT '이메일 주소',
 
@@ -34,17 +43,27 @@ CREATE TABLE IF NOT EXISTS users (
     INDEX idx_refresh_token (refresh_token) COMMENT '토큰 검증 시 사용'
     ) COMMENT '사용자 정보 테이블';
 
--- 기본 계정 생성 (비밀번호: admin123)
+-- 기본 계정 생성 (비밀번호: user123)
 INSERT IGNORE INTO users (
-    username, nickname, password, phone, email,
+    username, nickname, password, authority ,phone, email,
     status, enabled, email_verified
 ) VALUES
 (
     'testuser', '테스트유저',
-    '$2a$10$e3bddd9fKxaBOWFFnTB3SO.go/2Xix7J.oSN.u124N8wim6j5uLOi',
+    '$2a$10$q8mWpdkvFTQUHFeHE.YJDuq8HJhkSFmnxIalYkuHUqAgTY0TBOhLS',
+    'USER',
     '010-9876-5432', 'user@example.com',
     'ACTIVE', TRUE, TRUE
+),
+-- 관리자 계정 (비밀번호: admin123)
+(
+    'rootadmin', '시스템관리자',
+    '$2a$10$e3bddd9fKxaBOWFFnTB3SO.go/2Xix7J.oSN.u124N8wim6j5uLOi',
+    'ADMIN',
+    '010-1234-5678', 'admin@example.com',
+    'ACTIVE', TRUE, TRUE
 );
+
 
 -- 구분자 변경 (트리거 생성을 위해)
 DELIMITER $$
