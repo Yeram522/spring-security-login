@@ -56,7 +56,7 @@ public class AuthService {
             }
 
             // 토큰 생성
-            String accessToken = jwtUtil.createAccessToken(email);
+            String accessToken = jwtUtil.createAccessToken(email, user.getRole());
             String refreshToken = jwtUtil.createRefreshToken(email);
 
             // Refresh Token DB에 저장
@@ -67,6 +67,7 @@ public class AuthService {
             return LoginResponseDto.builder()
                     .accessToken(accessToken)
                     .refreshToken(refreshToken)
+                    .role(user.getRole().getAuthority())
                     .userEmail(email)
                     .build();
 
@@ -101,8 +102,11 @@ public class AuthService {
             throw new AuthException.InvalidTokenException("Refresh Token이 일치하지 않습니다");
         }
 
+        // ✅ DB에서 최신 사용자 정보 조회 (최신 권한 포함)
+        User user = userService.findByEmail(email);
+
         // 새로운 Access Token 생성
-        String newAccessToken = jwtUtil.createAccessToken(email);
+        String newAccessToken = jwtUtil.createAccessToken(email, user.getRole());
         log.info("토큰 갱신 완료: {}", email);
 
         return newAccessToken;

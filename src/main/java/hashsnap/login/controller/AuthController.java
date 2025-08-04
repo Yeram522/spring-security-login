@@ -51,6 +51,7 @@ public class AuthController extends ApiController {
         LoginResponseDto safeResponse = LoginResponseDto.builder()
                 .accessToken(loginResponse.getAccessToken())
                 .userEmail(loginResponse.getUserEmail())
+                .role(loginResponse.getRole())
                 .build();
 
         return ResponseUtils.ok("로그인이 완료되었습니다", safeResponse);

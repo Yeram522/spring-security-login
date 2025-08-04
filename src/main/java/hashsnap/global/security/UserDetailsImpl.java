@@ -1,12 +1,16 @@
 package hashsnap.global.security;
 
+import hashsnap.login.entity.Role;
 import hashsnap.login.entity.User;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.nio.file.attribute.UserPrincipal;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 @Getter
@@ -16,7 +20,10 @@ public class UserDetailsImpl implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of();
+        // 사용자의 Role을 Spring Security의 GrantedAuthority로 변환
+        return Collections.singletonList(
+                new SimpleGrantedAuthority(user.getRole().getAuthority())
+        );
     }
 
     @Override
@@ -48,4 +55,8 @@ public class UserDetailsImpl implements UserDetails {
     public boolean isEnabled() {
         return user.getEnabled() != null && user.getEnabled();
     }
+
+    //getter method
+    public Role getRole(){return user.getRole();}
+
 }
