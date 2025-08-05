@@ -1,6 +1,7 @@
 package hashsnap.login.controller;
 
 import hashsnap.login.dto.SignupRequestDto;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -46,8 +47,19 @@ public class PageController {
      * @return userPage.html
      */
     @GetMapping("/userPage")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     public String userPage() {
         return "userPage";
+    }
+
+    /**
+     * 관리자 페이지 반환
+     * @return admin.html
+     */
+    @GetMapping("/admin")
+    @PreAuthorize("hasRole('ADMIN')")
+    public String adminPage() {
+        return "admin";
     }
 
     /**

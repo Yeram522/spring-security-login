@@ -1,5 +1,6 @@
 package hashsnap.login.conifg;
 
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -29,7 +30,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
         http
-                // CORS 설정 추가
+                // CORS 설정
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
                 // JWT 방식이므로 CSRF 완전 비활성화
@@ -41,33 +42,64 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(authz -> authz
                         // === 정적 리소스 ===
-                        .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
+                        .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
 
-                        // === 웹 페이지 (Thymeleaf 템플릿) ===
-                        .requestMatchers("/login", "/register", "/", "/userPage","/findPwd").permitAll()
+                        // === HTML 페이지 ===
+                        .requestMatchers("/", "/login", "/register", "/findPwd", "/userPage", "/admin/**").permitAll()
 
                         // === Public API (인증 불필요) ===
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()           // 로그인
                         .requestMatchers(HttpMethod.GET, "/api/v1/users").permitAll()                // 이메일 중복확인
                         .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()               // 회원가입
-                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/email/send").permitAll()  // 이메일 인증
-                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/email/verify").permitAll()  // 이메일 인증
-                        .requestMatchers(HttpMethod.PUT, "/api/v1/users/password").permitAll()     // 비밀번호 재설정
-                        
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/email/send").permitAll()     // 이메일 발송
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/email/verify").permitAll()   // 이메일 인증
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/users/password").permitAll()       // 비밀번호 재설정
 
-                        // === Private API (JWT 인증 필요) ===
-                        .requestMatchers(HttpMethod.GET, "/api/v1/users/me").authenticated()  // 유저 정보 조회
-                        .requestMatchers("/api/v1/auth/refresh").authenticated()  // 토큰 갱신
-                        .requestMatchers("/api/v1/auth/logout").authenticated()   // 로그아웃
-                        .requestMatchers("/api/v1/**").authenticated()            // 기타 모든 API
+                        // === 관리자 전용 API (JWT 토큰 + ADMIN 권한 필요) ===
+                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
 
-                        // === 나머지 ===
+                        // === 일반 사용자 API (JWT 토큰 + USER 또는 ADMIN 권한 필요) ===
+                        .requestMatchers(HttpMethod.GET, "/api/v1/users/me").hasAnyRole("USER", "ADMIN")          // 내 정보 조회
+
+                        // === 인증만 필요한 API (권한 상관없이 로그인만 되면 됨) ===
+                        .requestMatchers("/api/v1/auth/refresh").authenticated()                      // 토큰 갱신
+                        .requestMatchers("/api/v1/auth/logout").authenticated()                       // 로그아웃
+
+                        // === 기타 모든 API (인증 필요) ===
+                        .requestMatchers("/api/v1/**").authenticated()
+
+                        // === 나머지 모든 요청 (인증 필요) ===
                         .anyRequest().authenticated()
                 )
 
                 // JWT 필터 추가
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                ;
+
+                // 예외 처리
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            // API 요청인 경우 JSON 응답
+                            if (request.getRequestURI().startsWith("/api/")) {
+                                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                                response.setContentType("application/json;charset=UTF-8");
+                                response.getWriter().write("{\"success\":false,\"message\":\"인증이 필요합니다.\"}");
+                            } else {
+                                // HTML 페이지 요청인 경우 로그인 페이지로 리다이렉트
+                                response.sendRedirect("/login");
+                            }
+                        })
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            // API 요청인 경우 JSON 응답
+                            if (request.getRequestURI().startsWith("/api/")) {
+                                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                                response.setContentType("application/json;charset=UTF-8");
+                                response.getWriter().write("{\"success\":false,\"message\":\"접근 권한이 없습니다.\"}");
+                            } else {
+                                // HTML 페이지 요청인 경우 접근 거부 페이지
+                                response.sendRedirect("/access-denied");
+                            }
+                        })
+                );
 
         return http.build();
     }

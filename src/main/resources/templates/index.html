@@ -2,28 +2,128 @@
 <html>
 <head>
     <title>Redirecting...</title>
+    <style>
+        .loading-container {
+            text-align: center;
+            padding: 50px;
+            font-family: Arial, sans-serif;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body>
-<div style="text-align: center; padding: 50px;">
+<div class="loading-container">
     <h3>페이지를 로딩 중입니다...</h3>
-    <div class="spinner">로딩...</div>
+    <div class="spinner"></div>
+    <p id="status">토큰을 확인하고 있습니다...</p>
 </div>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        const statusElement = document.getElementById('status');
+
         // localStorage에서 토큰 확인
         const accessToken = localStorage.getItem('accessToken');
         const userEmail = localStorage.getItem('userEmail');
 
         if (accessToken && userEmail && isTokenValid(accessToken)) {
-            // 로그인되어 있으면 마이페이지로
-            window.location.href = '/userPage';
+            statusElement.textContent = '사용자 권한을 확인하고 있습니다...';
+
+            // JWT 토큰에서 권한 추출
+            const userRole = getRoleFromToken(accessToken);
+
+            // 권한별 리다이렉트
+            if (userRole === 'ROLE_ADMIN') {
+                statusElement.textContent = '관리자 페이지로 이동합니다...';
+                setTimeout(() => {
+                    window.location.href = '/admin';
+                }, 500);
+            } else if (userRole === 'ROLE_USER') {
+                statusElement.textContent = '사용자 페이지로 이동합니다...';
+                setTimeout(() => {
+                    window.location.href = '/userPage';
+                }, 500);
+            } else {
+                // 권한이 명확하지 않은 경우 기본 사용자 페이지로
+                statusElement.textContent = '기본 페이지로 이동합니다...';
+                setTimeout(() => {
+                    window.location.href = '/userPage';
+                }, 500);
+            }
         } else {
             // 로그인 안되어 있으면 로그인 페이지로
+            statusElement.textContent = '로그인 페이지로 이동합니다...';
             clearStoredTokens();
-            window.location.href = '/login';
+            setTimeout(() => {
+                window.location.href = '/login';
+            }, 500);
         }
     });
+
+    // JWT 토큰에서 권한 추출
+    function getRoleFromToken(token) {
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            console.log('Token payload:', payload); // 디버깅용
+
+            // JWT payload에서 권한 정보 추출 (서버에서 설정한 필드명에 따라 다름)
+            // 가능한 필드명들: auth, authorities, roles, role 등
+
+            if (payload.auth) {
+                // auth 필드가 배열인 경우: ["ROLE_ADMIN"] 또는 ["ROLE_USER"]
+                if (Array.isArray(payload.auth) && payload.auth.length > 0) {
+                    return payload.auth[0]; // 첫 번째 권한 반환
+                }
+                // auth 필드가 문자열인 경우: "ROLE_ADMIN"
+                if (typeof payload.auth === 'string') {
+                    return payload.auth;
+                }
+            }
+
+            if (payload.authorities) {
+                if (Array.isArray(payload.authorities) && payload.authorities.length > 0) {
+                    return payload.authorities[0];
+                }
+                if (typeof payload.authorities === 'string') {
+                    return payload.authorities;
+                }
+            }
+
+            if (payload.role) {
+                // role 필드가 "ADMIN"인 경우 "ROLE_ADMIN"으로 변환
+                if (typeof payload.role === 'string') {
+                    return payload.role.startsWith('ROLE_') ? payload.role : `ROLE_${payload.role}`;
+                }
+            }
+
+            if (payload.roles) {
+                if (Array.isArray(payload.roles) && payload.roles.length > 0) {
+                    const role = payload.roles[0];
+                    return role.startsWith('ROLE_') ? role : `ROLE_${role}`;
+                }
+            }
+
+            // 권한 필드를 찾지 못한 경우
+            console.warn('토큰에서 권한 정보를 찾을 수 없습니다:', payload);
+            return 'ROLE_USER'; // 기본값
+
+        } catch (error) {
+            console.error('토큰 파싱 오류:', error);
+            return 'ROLE_USER'; // 기본값
+        }
+    }
 
     // 토큰 유효성 체크
     function isTokenValid(token) {
@@ -32,6 +132,7 @@
             const currentTime = Date.now() / 1000;
             return payload.exp > currentTime;
         } catch (error) {
+            console.error('토큰 유효성 검사 오류:', error);
             return false;
         }
     }
@@ -40,6 +141,7 @@
     function clearStoredTokens() {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('userEmail');
+        console.log('만료된 토큰을 제거했습니다.');
     }
 </script>
 </body>

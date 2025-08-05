@@ -1,5 +1,6 @@
 package hashsnap.global.util;
 
+import hashsnap.login.entity.Role;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -34,7 +35,7 @@ public class JwtUtil {
     }
 
     // Access Token 생성
-    public String createAccessToken(String email) {
+    public String createAccessToken(String email, Role role) {
         Claims claims = Jwts.claims().setSubject(email);
 
         Date now = new Date();
@@ -43,6 +44,8 @@ public class JwtUtil {
         return Jwts.builder()
                 .setClaims(claims)
                 .setIssuedAt(now)
+                .claim("auth", role.getAuthority())  // "ROLE_ADMIN" 또는 "ROLE_USER"
+                .claim("role", role.name())          // "ADMIN" 또는 "USER"
                 .setExpiration(validity)
                 .signWith(SignatureAlgorithm.HS256, secretKey)
                 .compact();

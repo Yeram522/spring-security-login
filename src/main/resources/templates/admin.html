@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>관리자 전용 페이지</title>
+</head>
+<body>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const token = localStorage.getItem('accessToken');
+
+        if (!token) {
+            alert('로그인이 필요합니다.');
+            window.location.href = '/login';
+            return;
+        }
+
+        // JWT 토큰에서 권한 확인
+        const userRole = getRoleFromToken(token);
+        if (userRole !== 'ROLE_ADMIN') {
+            alert('관리자 권한이 필요합니다.');
+            window.location.href = '/userPage';
+            return;
+        }
+
+        // 관리자 권한 확인되면 페이지 컨텐츠 로드
+        loadAdminContent();
+    });
+
+    function getRoleFromToken(token) {
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            return payload.auth || `ROLE_${payload.role}`;
+        } catch {
+            return null;
+        }
+    }
+</script>
+<p>관리자 페이지 입니다.</p>
+</body>
+</html>

@@ -19,6 +19,7 @@ public class UserInfoResponseDto {
     private String email;
     private String nickname;
     private String username;
+    private String role;
     private String phone;
 
     // Entity에서 DTO로 변환하는 정적 메소드
@@ -27,6 +28,7 @@ public class UserInfoResponseDto {
                 .email(user.getEmail())
                 .nickname(user.getNickname())
                 .username(user.getUsername())
+                .role(user.getRole().getAuthority())
                 .phone(user.getPhone())
                 .build();
     }

@@ -69,6 +69,9 @@
             </div>
 
             <div class="text-center mt-4">
+                <button class="btn btn-warning btn-lg me-3" id="adminBtn" style="display: none;">
+                    🔧 관리자 페이지
+                </button>
                 <button class="btn btn-outline-danger btn-lg" id="logoutBtn">로그아웃</button>
             </div>
         </div>
@@ -149,7 +152,10 @@
         document.getElementById('userNickname').textContent = user.nickname || '-';
         document.getElementById('userName').textContent = user.username || '-';
         document.getElementById('userPhone').textContent = user.phone || '-';
-
+        if (user.role === 'ROLE_ADMIN') {
+            document.getElementById('adminBtn').style.display = 'inline-block';
+            document.getElementById('adminBtn').onclick = () => window.location.href = '/admin';
+        }
         document.getElementById('userInfoCard').style.display = 'block';
     }
 

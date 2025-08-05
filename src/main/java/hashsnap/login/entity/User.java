@@ -34,6 +34,12 @@ public class User {
     @Column(name = "password", length = 100, nullable = false)
     private String password; // BCrypt 암호화된 비밀번호
 
+    // 권한 설정
+    @Enumerated(EnumType.STRING)
+    @Column(name = "authority",nullable = false)
+    @Builder.Default
+    private Role role = Role.USER; // 기본값은 일반 사용자
+
     @Column(name = "phone", length = 20, nullable = false)
     private String phone; // 휴대폰 번호
 
