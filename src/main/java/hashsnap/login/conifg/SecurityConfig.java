@@ -1,5 +1,6 @@
 package hashsnap.login.conifg;
 
+import hashsnap.security.filter.SecurityAuditFilter;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,7 +29,8 @@ import java.util.Arrays;
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthenticationFilter
+                                            , SecurityAuditFilter securityAuditFilter) throws Exception {
         http
                 // CORS 설정
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -40,12 +42,18 @@ public class SecurityConfig {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
+                // JWT 필터 (인증)
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+
+                // 모든 요청 로깅
+                .addFilterBefore(securityAuditFilter, UsernamePasswordAuthenticationFilter.class)
+
                 .authorizeHttpRequests(authz -> authz
                         // === 정적 리소스 ===
                         .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
 
                         // === HTML 페이지 ===
-                        .requestMatchers("/", "/login", "/register", "/findPwd", "/userPage", "/admin/**").permitAll()
+                        .requestMatchers("/", "/login", "/register", "/findPwd", "/userPage","/admin").permitAll()
 
                         // === Public API (인증 불필요) ===
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()           // 로그인
@@ -71,9 +79,6 @@ public class SecurityConfig {
                         // === 나머지 모든 요청 (인증 필요) ===
                         .anyRequest().authenticated()
                 )
-
-                // JWT 필터 추가
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
 
                 // 예외 처리
                 .exceptionHandling(ex -> ex

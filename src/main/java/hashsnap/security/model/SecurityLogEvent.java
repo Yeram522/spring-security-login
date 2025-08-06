@@ -9,7 +9,7 @@ import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Document(indexName = "security-logs")
 @Data
@@ -22,10 +22,13 @@ public class SecurityLogEvent {
     private String id;
 
     @Field(type = FieldType.Date)
-    private LocalDateTime timestamp;
+    private Instant timestamp;
 
     @Field(type = FieldType.Keyword)
     private String eventType;  // LOGIN_SUCCESS, LOGIN_FAILED, API_ACCESS 등
+
+    @Field(type = FieldType.Keyword)
+    private String httpMethod;
 
     @Field(type = FieldType.Keyword)
     private String email;
@@ -38,6 +41,9 @@ public class SecurityLogEvent {
 
     @Field(type = FieldType.Integer)
     private Integer statusCode;
+
+    @Field(type = FieldType.Long)
+    private Long processingTimeMs;
 
     @Field(type = FieldType.Text)
     private String userAgent;

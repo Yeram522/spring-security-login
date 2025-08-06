@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -20,7 +21,7 @@ public class SecurityLogService {
     // 동기 로그 저장
     public SecurityLogEvent saveLog(SecurityLogEvent event) {
         try {
-            event.setTimestamp(LocalDateTime.now());
+            event.setTimestamp(Instant.now());
             SecurityLogEvent saved = securityLogRepository.save(event);
             log.info("보안 로그 저장 완료: {}", saved.getEmail());
             return saved;
