@@ -22,5 +22,43 @@ services:
       --default-time-zone='+09:00'
       --innodb-default-row-format=dynamic
 
+  # Elasticsearch 추가
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.8.0
+    container_name: elasticsearch
+    environment:
+        - discovery.type=single-node
+        - xpack.security.enabled=false  # 개발용 보안 비활성화
+        - "ES_JAVA_OPTS=-Xms512m -Xmx512m"  # 메모리 제한
+    ports:
+        - "9200:9200"
+    volumes:
+        - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+        - security-network
+
+  # Kibana 추가
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.8.0
+    container_name: kibana
+    environment:
+        - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+        - "5601:5601"
+    depends_on:
+        - elasticsearch
+    volumes:
+      - kibana_data:/usr/share/kibana/data
+    networks:
+      - security-network
+
 volumes:
   mysql_data:
+  elasticsearch_data:
+    driver: local
+  kibana_data:
+    driver: local
+
+networks:
+  security-network:
+    driver: bridge
