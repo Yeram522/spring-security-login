@@ -1,6 +1,7 @@
 package hashsnap.login.service;
 
 import hashsnap.global.util.JwtUtil;
+import hashsnap.login.annotation.LoginAudit;
 import hashsnap.login.dto.LoginRequestDto;
 import hashsnap.login.dto.LoginResponseDto;
 import hashsnap.login.entity.User;
@@ -32,6 +33,7 @@ public class AuthService {
     /**
      * 로그인 처리
      */
+    @LoginAudit
     public LoginResponseDto login(LoginRequestDto loginRequestDto) {
         String email = loginRequestDto.getEmail();
 
