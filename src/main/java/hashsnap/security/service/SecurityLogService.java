@@ -1,6 +1,6 @@
 package hashsnap.security.service;
 
-import hashsnap.security.model.SecurityLogEvent;
+import hashsnap.security.entity.SecurityLogEvent;
 import hashsnap.security.repository.SecurityLogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,6 +1,6 @@
 package hashsnap.security.repository;
 
-import hashsnap.security.model.SecurityLogEvent;
+import hashsnap.security.entity.SecurityLogEvent;
 import org.springframework.data.elasticsearch.annotations.Query;
 import org.springframework.data.elasticsearch.repository.ElasticsearchRepository;
 import org.springframework.stereotype.Repository;

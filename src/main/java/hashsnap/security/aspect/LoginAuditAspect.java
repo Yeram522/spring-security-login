@@ -2,7 +2,7 @@ package hashsnap.security.aspect;
 
 import hashsnap.login.dto.LoginRequestDto;
 import hashsnap.login.dto.LoginResponseDto;
-import hashsnap.security.model.SecurityLogEvent;
+import hashsnap.security.entity.SecurityLogEvent;
 import hashsnap.security.service.SecurityLogService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;

@@ -1,6 +1,6 @@
 package hashsnap.security.filter;
 
-import hashsnap.security.model.SecurityLogEvent;
+import hashsnap.security.entity.SecurityLogEvent;
 import hashsnap.security.service.SecurityLogService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

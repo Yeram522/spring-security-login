@@ -1,4 +1,4 @@
-package hashsnap.security.model;
+package hashsnap.security.entity;
 
 import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
