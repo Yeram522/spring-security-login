@@ -63,7 +63,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/email/verify").permitAll()   // 이메일 인증
                         .requestMatchers(HttpMethod.PUT, "/api/v1/users/password").permitAll()       // 비밀번호 재설정
 
-                        // === 관리자 전용 API (JWT 토큰 + ADMIN 권한 필요) ===
+                        // === SSE 스트림만 예외 처리 ===
+                        .requestMatchers("/api/v1/admin/security/alerts/stream").permitAll()
+
+                        // === 관리자 전용 API === 👈
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
 
                         // === 일반 사용자 API (JWT 토큰 + USER 또는 ADMIN 권한 필요) ===
