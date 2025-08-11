@@ -50,7 +50,7 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(authz -> authz
                         // === 정적 리소스 ===
-                        .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
+                        .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico","/*.html").permitAll()
 
                         // === HTML 페이지 ===
                         .requestMatchers("/", "/login", "/register", "/findPwd", "/userPage","/admin").permitAll()

@@ -1,14 +1,21 @@
 package hashsnap.security.controller;
 
 
+import hashsnap.global.response.ApiResponse;
 import hashsnap.global.util.JwtUtil;
+import hashsnap.global.util.ResponseUtils;
+import hashsnap.security.service.AlertDeduplicationService;
 import hashsnap.security.service.AlertService;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/v1/admin/security")
@@ -17,6 +24,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 public class AlertController {
 
     private final AlertService alertService;
+    private final AlertDeduplicationService alertDeduplicationService;
     private final JwtUtil jwtUtil; // JWT 유틸 주입
 
     @GetMapping(value = "/alerts/stream", produces = "text/event-stream")
@@ -61,5 +69,43 @@ public class AlertController {
         return ResponseEntity.ok("테스트 알림 전송 완료");
     }
 
+    /**
+     * 알림 확인 처리 API
+     */
+    @PostMapping("/alerts/acknowledge")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> acknowledgeAlert(
+            @RequestBody AlertAcknowledgeRequest request,
+            Authentication auth) {
+
+        alertDeduplicationService.acknowledgeAlert(request.getAlertKey(), auth.getName());
+        return ResponseUtils.ok("알림이 확인 처리되었습니다");
+    }
+
+    /**
+     * 알림 억제 처리 API
+     */
+    @PostMapping("/alerts/suppress")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> suppressAlert(
+            @RequestBody AlertSuppressRequest request,
+            Authentication auth) {
+
+        LocalDateTime suppressUntil = LocalDateTime.now().plusHours(request.getSuppressHours());
+        alertDeduplicationService.suppressAlertUntil(request.getAlertKey(), suppressUntil, auth.getName());
+        return ResponseUtils.ok(request.getSuppressHours() + "시간 동안 알림이 억제됩니다");
+    }
 
 }
+
+@Data
+class AlertAcknowledgeRequest {
+    private String alertKey;
+}
+
+@Data
+class AlertSuppressRequest {
+    private String alertKey;
+    private int suppressHours;
+}
+

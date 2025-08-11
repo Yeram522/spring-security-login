@@ -11,6 +11,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
@@ -24,8 +25,7 @@ public class SecurityAnalysisService {
 
     private final ElasticsearchOperations elasticsearchOperations;
     private final SecurityLogRepository securityLogRepository;
-    private final AlertService alertService;
-
+    private final AlertDeduplicationService alertDeduplicationService;
 
     // ✨ 임계값 설정
     private static final int EMAIL_VERIFICATION_THRESHOLD = 5;   // 5회 이메일 인증 실패
@@ -36,17 +36,18 @@ public class SecurityAnalysisService {
 
     @Scheduled(fixedDelay = 30000) // 30초마다 실행
     public void runSecurityAnalysis(){
-        log.info("🔍보안 검사 시작");
-        
+        log.info("🔍 [{}] 보안 검사 시작 - 연결된 관리자: {}명",
+                LocalDateTime.now(), alertDeduplicationService.getConnectedAdminCount());
+
         try{
             detectEmailVerificationAttack();
             detectApiAbuse();
             detectAdminScanning();
             detectDirectoryScanning();
             detectDDoSAttack();
-            log.info("✅ 보안 분석 완료");
+            log.info("✅ [{}] 보안 분석 완료", LocalDateTime.now());
         }catch(Exception e){
-            log.error("❌보안 분석 실패");
+            log.error("❌ [{}] 보안 분석 실패: {}", LocalDateTime.now(), e.getMessage(), e);
         }
     }
 
@@ -70,11 +71,23 @@ public class SecurityAnalysisService {
 
                 if (ipFailures.size() >= EMAIL_VERIFICATION_THRESHOLD) {
                     String failureTypes = analyzeFailureTypes(ipFailures);
+                    String title = "🚨 이메일 인증 브루트포스 공격";
+                    String message = String.format(
+                            "IP %s에서 %d회 이메일 인증 실패 시도가 탐지되었습니다.\n\n" +
+                                    "🔸 실패 유형: %s\n" +
+                                    "🔸 탐지 시간: %s\n" +
+                                    "🔸 분석 기간: 최근 5분\n\n" +
+                                    "즉시 해당 IP를 차단하는 것을 권장합니다.",
+                            ipAddress, ipFailures.size(), failureTypes, LocalDateTime.now()
+                    );
 
-                    alertService.sendEmailVerificationAttackAlert(
+                    // 🔥 AlertDeduplicationService 사용으로 변경
+                    alertDeduplicationService.sendAlertWithDeduplication(
+                            "EMAIL_VERIFICATION_ATTACK",
                             ipAddress,
-                            ipFailures.size(),
-                            failureTypes
+                            title,
+                            message,
+                            "CRITICAL"
                     );
 
                     log.warn("🚨 이메일 인증 공격 탐지: IP={}, 실패횟수={}, 유형={}",
@@ -85,7 +98,6 @@ public class SecurityAnalysisService {
         } catch (Exception e) {
             log.error("이메일 인증 공격 탐지 실패", e);
         }
-
     }
 
     private String analyzeFailureTypes(List<SecurityLogEvent> failures) {
@@ -118,7 +130,6 @@ public class SecurityAnalysisService {
         return types.toString().trim();
     }
 
-
     // API 남용 방지
     private void detectApiAbuse(){
         try{
@@ -138,9 +149,27 @@ public class SecurityAnalysisService {
 
                 if(ipCalls.size() >= API_ABUSE_THRESHOLD){
                     //API 호출 패턴 분석
-                    String apiPattern  = analyzeApiCallPattern(ipCalls);
+                    String apiPattern = analyzeApiCallPattern(ipCalls);
+                    String title = "🚨 API 남용 탐지";
+                    String message = String.format(
+                            "비정상적인 API 호출 패턴이 탐지되었습니다.\n\n" +
+                                    "🔸 공격 IP: %s\n" +
+                                    "🔸 호출 횟수: %d회 (1분간)\n" +
+                                    "🔸 호출 패턴: %s\n" +
+                                    "🔸 탐지 시간: %s\n\n" +
+                                    "Rate Limiting 적용을 권장합니다.",
+                            ipAddress, ipCalls.size(), apiPattern, LocalDateTime.now()
+                    );
 
-                    alertService.sendApiAbuseAlert(ipAddress, ipCalls.size(), apiPattern);
+                    // 🔥 AlertDeduplicationService 사용
+                    alertDeduplicationService.sendAlertWithDeduplication(
+                            "API_ABUSE",
+                            ipAddress,
+                            title,
+                            message,
+                            "HIGH"
+                    );
+
                     log.warn("🚨 API 남용 탐지: IP={}, 호출횟수={}/1분, 패턴={}",
                             ipAddress, ipCalls.size(), apiPattern);
                 }
@@ -186,12 +215,26 @@ public class SecurityAnalysisService {
                 if (ipAttempts.size() >= ADMIN_SCAN_THRESHOLD) {
                     // 접근 패턴 분석
                     AdminScanPattern pattern = analyzeAdminScanPattern(ipAttempts);
+                    String title = "🚨 관리자 페이지 스캐닝";
+                    String message = String.format(
+                            "관리자 페이지 스캐닝 시도가 탐지되었습니다.\n\n" +
+                                    "🔸 공격 IP: %s\n" +
+                                    "🔸 시도 횟수: %d회 (10분간)\n" +
+                                    "🔸 스캔 엔드포인트: %s\n" +
+                                    "🔸 응답 상태: %s\n" +
+                                    "🔸 탐지 시간: %s\n\n" +
+                                    "관리자 페이지 접근 보안을 강화하세요.",
+                            ipAddress, ipAttempts.size(), pattern.getEndpoints(),
+                            pattern.getStatusCodes(), LocalDateTime.now()
+                    );
 
-                    alertService.sendAdminScanAlert(
+                    // 🔥 AlertDeduplicationService 사용
+                    alertDeduplicationService.sendAlertWithDeduplication(
+                            "ADMIN_SCANNING",
                             ipAddress,
-                            ipAttempts.size(),
-                            pattern.getEndpoints(),
-                            pattern.getStatusCodes()
+                            title,
+                            message,
+                            "CRITICAL"
                     );
 
                     log.warn("🚨 Admin 스캐닝 탐지: IP={}, 시도횟수={}, 엔드포인트={}, 상태코드={}",
@@ -236,14 +279,12 @@ public class SecurityAnalysisService {
         private String statusCodes;
     }
 
-
     // 디렉토리 스캐닝 탐지
     private void detectDirectoryScanning() {
         try {
             // 최근 2분간 404 에러 조회
             Instant twoMinutesAgo = Instant.now().minus(2, ChronoUnit.MINUTES);
 
-            // Repository에 추가 쿼리 필요 (404 에러만)
             List<SecurityLogEvent> notFoundErrors = securityLogRepository
                     .findNotFoundErrorsAfter(twoMinutesAgo.toString());
 
@@ -259,12 +300,26 @@ public class SecurityAnalysisService {
                 if (ipErrors.size() >= NOT_FOUND_THRESHOLD) {
                     // 스캔 패턴 분석
                     DirectoryScanPattern pattern = analyzeDirectoryScanPattern(ipErrors);
+                    String title = "🚨 디렉토리 스캐닝 탐지";
+                    String message = String.format(
+                            "디렉토리 스캐닝 공격이 탐지되었습니다.\n\n" +
+                                    "🔸 공격 IP: %s\n" +
+                                    "🔸 404 에러: %d회 (2분간)\n" +
+                                    "🔸 스캔 유형: %s\n" +
+                                    "🔸 스캔 경로: %s\n" +
+                                    "🔸 탐지 시간: %s\n\n" +
+                                    "웹 방화벽 설정을 확인하세요.",
+                            ipAddress, ipErrors.size(), pattern.getScanType(),
+                            pattern.getScannedPaths(), LocalDateTime.now()
+                    );
 
-                    alertService.sendDirectoryScanAlert(
+                    // 🔥 AlertDeduplicationService 사용
+                    alertDeduplicationService.sendAlertWithDeduplication(
+                            "DIRECTORY_SCANNING",
                             ipAddress,
-                            ipErrors.size(),
-                            pattern.getScannedPaths(),
-                            pattern.getScanType()
+                            title,
+                            message,
+                            "MEDIUM"
                     );
 
                     log.warn("🚨 디렉토리 스캐닝 탐지: IP={}, 404에러={}/2분, 패턴={}, 유형={}",
@@ -311,7 +366,7 @@ public class SecurityAnalysisService {
         private String scanType;
     }
 
-    // DDos 공격 탐지
+    // DDoS 공격 탐지
     private void detectDDoSAttack() {
         try {
             Instant now = Instant.now();
@@ -347,12 +402,29 @@ public class SecurityAnalysisService {
             if (previousAvg > 0 && currentAvg > previousAvg * RESPONSE_TIME_MULTIPLIER) {
                 // 상세 분석
                 DDoSAnalysis analysis = analyzeDDoSPattern(currentPeriodLogs, previousPeriodLogs);
+                String title = "🚨 DDoS 공격 의심";
+                String message = String.format(
+                        "DDoS 공격으로 의심되는 패턴이 탐지되었습니다.\n\n" +
+                                "🔸 현재 평균 응답시간: %.2fms\n" +
+                                "🔸 이전 평균 응답시간: %.2fms\n" +
+                                "🔸 응답시간 증가율: %.1f%%\n" +
+                                "🔸 요청량 증가율: %.1f%%\n" +
+                                "🔸 상위 공격 IP: %s\n" +
+                                "🔸 탐지 시간: %s\n\n" +
+                                "긴급 대응이 필요합니다!",
+                        currentAvg, previousAvg,
+                        ((currentAvg - previousAvg) / previousAvg * 100),
+                        analysis.getRequestIncrease(), analysis.getTopAttackingIps(),
+                        LocalDateTime.now()
+                );
 
-                alertService.sendDDoSAlert(
-                        currentAvg,
-                        previousAvg,
-                        analysis.getRequestIncrease(),
-                        analysis.getTopAttackingIps()
+                // 🔥 AlertDeduplicationService 사용
+                alertDeduplicationService.sendAlertWithDeduplication(
+                        "DDOS_ATTACK",
+                        "multiple_ips",
+                        title,
+                        message,
+                        "CRITICAL"
                 );
 
                 log.warn("🚨 DDoS 공격 의심: 현재평균={}ms, 이전평균={}ms, 요청증가={}%, 상위공격IP={}",
