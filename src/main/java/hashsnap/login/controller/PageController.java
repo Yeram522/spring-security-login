@@ -59,7 +59,7 @@ public class PageController {
     @GetMapping("/admin")
     @PreAuthorize("hasRole('ADMIN')")
     public String adminPage() {
-        return "admin";
+        return "forward:/admin-dashboard.html";
     }
 
     /**
