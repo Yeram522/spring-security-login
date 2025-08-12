@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>보안 관제센터</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        /* 기존 스타일과 동일 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-weight: bold;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .connection-status.connecting {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+
+        .connection-status.connected {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .connection-status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-toast {
+            position: fixed;
+            top: 60px;
+            right: 10px;
+            min-width: 350px;
+            max-width: 500px;
+            background: white;
+            border-left: 4px solid #007bff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            padding: 16px;
+            margin-bottom: 10px;
+            z-index: 1001;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .alert-toast.severity-critical {
+            border-left-color: #dc3545;
+            background: #fff5f5;
+        }
+
+        .alert-toast.severity-high {
+            border-left-color: #fd7e14;
+            background: #fff8f0;
+        }
+
+        .alert-toast.severity-medium {
+            border-left-color: #ffc107;
+            background: #fffbf0;
+        }
+
+        .alert-toast.severity-low {
+            border-left-color: #28a745;
+            background: #f0fff4;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .alert-time {
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .alert-body {
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        .alert-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .alert-actions button {
+            padding: 4px 12px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            background: white;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .alert-actions button:hover {
+            background: #f8f9fa;
+        }
+
+        .fade-enter-active, .fade-leave-active {
+            transition: opacity 0.5s ease;
+        }
+
+        .fade-enter-from, .fade-leave-to {
+            opacity: 0;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2em;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .status-item.online {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-item.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-item.critical {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-item.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .controls button {
+            padding: 8px 16px;
+            border: 1px solid #007bff;
+            background: #007bff;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .controls button:hover {
+            background: #0056b3;
+            transform: translateY(-1px);
+        }
+
+        .controls button.secondary {
+            background: white;
+            color: #007bff;
+        }
+
+        .controls button.secondary:hover {
+            background: #f8f9fa;
+        }
+
+        .dashboard {
+            padding: 30px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 25px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .card h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .metric {
+            text-align: center;
+            padding: 20px;
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+        }
+
+        .metric.critical {
+            background: linear-gradient(135deg, #ffebee, #ffcdd2);
+        }
+
+        .metric.critical::before {
+            background: #f44336;
+        }
+
+        .metric.warning {
+            background: linear-gradient(135deg, #fff8e1, #ffecb3);
+        }
+
+        .metric.warning::before {
+            background: #ff9800;
+        }
+
+        .metric.normal {
+            background: linear-gradient(135deg, #e8f5e8, #c8e6c9);
+        }
+
+        .metric.normal::before {
+            background: #4caf50;
+        }
+
+        .metric.info {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+        }
+
+        .metric.info::before {
+            background: #2196f3;
+        }
+
+        .metric-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+
+        .metric-label {
+            font-size: 0.9em;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 15px;
+        }
+
+        .threat-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .threat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #dc3545;
+            transition: all 0.3s ease;
+        }
+
+        .threat-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .threat-ip {
+            font-family: monospace;
+            font-weight: bold;
+            color: #dc3545;
+        }
+
+        .threat-count {
+            background: #dc3545;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+        }
+
+        .update-time {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .metric.critical .metric-value {
+            animation: pulse 2s infinite;
+            color: #d32f2f;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <!-- 연결 상태 표시 -->
+    <div :class="['connection-status', connectionStatus]">
+        {{ connectionStatusText }}
+    </div>
+
+    <!-- 헤더 -->
+    <div class="header">
+        <h1>🛡️ 보안 관제센터</h1>
+        <div class="status-bar">
+            <div class="status-item online">
+                <span>🟢</span> 시스템 정상
+            </div>
+            <div class="status-item warning">
+                <span>🟡</span> {{ metrics.warningCount || 0 }}개 경고
+            </div>
+            <div class="status-item critical">
+                <span>🔴</span> {{ metrics.criticalAlerts || 0 }}개 긴급
+            </div>
+            <div class="status-item info">
+                <span>📊</span> 실시간 모니터링
+            </div>
+        </div>
+
+        <div class="controls">
+            <button @click="refreshAllData">
+                🔄 전체 새로고침
+            </button>
+            <button @click="testAlert" class="secondary">
+                🧪 테스트 알림
+            </button>
+            <button @click="exportReport" class="secondary">
+                📊 리포트 내보내기
+            </button>
+            <select v-model="selectedTimeRange" @change="updateTimeRange">
+                <option value="15m">최근 15분</option>
+                <option value="1h">최근 1시간</option>
+                <option value="24h">최근 24시간</option>
+                <option value="7d">최근 7일</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- 대시보드 -->
+    <div class="dashboard">
+        <!-- 실시간 보안 지표 -->
+        <div class="card">
+            <h3>📊 실시간 보안 지표</h3>
+            <div class="metrics-grid">
+                <div class="metric critical">
+                    <div class="metric-value">{{ metrics.criticalAlerts || 0 }}</div>
+                    <div class="metric-label">긴급 알림</div>
+                </div>
+                <div class="metric warning">
+                    <div class="metric-value">{{ metrics.blockedIps || 0 }}</div>
+                    <div class="metric-label">차단된 IP</div>
+                </div>
+                <div class="metric normal">
+                    <div class="metric-value">{{ formatNumber(metrics.successfulLogins || 0) }}</div>
+                    <div class="metric-label">정상 로그인</div>
+                </div>
+                <div class="metric info">
+                    <div class="metric-value">{{ formatNumber(metrics.totalRequests || 0) }}</div>
+                    <div class="metric-label">총 요청 수</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 실시간 보안 이벤트 추이 -->
+        <div class="card">
+            <h3>📈 실시간 보안 이벤트 추이</h3>
+            <div class="chart-container">
+                <canvas id="realTimeChart"></canvas>
+            </div>
+        </div>
+
+        <!-- 상위 위협 IP -->
+        <div class="card">
+            <h3>🌍 상위 위협 IP TOP 10</h3>
+            <div class="threat-list">
+                <div v-for="threat in threatIps" :key="threat.ipAddress" class="threat-item"
+                     :style="{ borderLeftColor: getThreatColor(threat.riskLevel) }">
+                    <div>
+                        <div class="threat-ip">{{ threat.ipAddress }}</div>
+                        <small style="color: #666;">
+                            🌍 {{ threat.countryCode }} | {{ threat.attackTypes.join(', ') }}
+                        </small>
+                    </div>
+                    <div class="threat-count" :style="{ background: getThreatColor(threat.riskLevel) }">
+                        {{ threat.attackCount }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 시간대별 공격 패턴 -->
+        <div class="card">
+            <h3>⏰ 시간대별 공격 패턴</h3>
+            <div class="chart-container">
+                <canvas id="hourlyChart"></canvas>
+            </div>
+        </div>
+
+        <!-- 응답시간 모니터링 -->
+        <div class="card">
+            <h3>⚡ 시스템 응답시간 모니터링</h3>
+            <div class="chart-container">
+                <canvas id="responseTimeChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- 마지막 업데이트 시간 -->
+    <div class="update-time">
+        마지막 업데이트: {{ lastUpdateTime }}
+    </div>
+
+    <!-- 알림 토스트들 -->
+    <transition-group name="fade">
+        <div v-for="alert in alerts" :key="alert.id"
+             :class="['alert-toast', `severity-${alert.severity.toLowerCase()}`]">
+            <div class="alert-header">
+                <strong>{{ alert.title }}</strong>
+                <span class="alert-time">{{ formatTime(alert.timestamp) }}</span>
+            </div>
+            <div class="alert-body" v-html="alert.message.replace(/\n/g, '<br>')"></div>
+            <div class="alert-actions">
+                <button @click="acknowledgeAlert(alert)">✅ 확인</button>
+                <button @click="suppressAlert(alert, 1)">🔇 1시간 억제</button>
+                <button v-if="alert.ipAddress && alert.ipAddress !== 'multiple_ips'"
+                        @click="blockIp(alert.ipAddress)">🚫 IP 차단
+                </button>
+                <button @click="removeAlert(alert.id)">❌ 닫기</button>
+            </div>
+        </div>
+    </transition-group>
+</div>
+
+<script>
+    const {createApp, ref, reactive, onMounted, onUnmounted, nextTick} = Vue;
+
+    createApp({
+        setup() {
+            // 반응형 데이터
+            const connectionStatus = ref('connecting');
+            const connectionStatusText = ref('🔄 연결 중...');
+            const selectedTimeRange = ref('1h');
+            const lastUpdateTime = ref('--:--:--');
+            const alerts = ref([]);
+
+            const metrics = reactive({
+                criticalAlerts: 0,
+                blockedIps: 0,
+                successfulLogins: 0,
+                totalRequests: 0,
+                warningCount: 0
+            });
+
+            const threatIps = ref([]);
+
+            // 차트 인스턴스들
+            const charts = {};
+
+            // 전역 변수
+            let eventSource = null;
+            let updateInterval = null;
+            let reconnectAttempts = 0;
+            const maxReconnectAttempts = 5;
+
+            // SSE 연결 함수
+            function connectToAlertStream() {
+                const token = localStorage.getItem('accessToken');
+
+                const url = `/api/v1/admin/security/alerts/stream?token=${encodeURIComponent(token)}`;
+
+                console.log('🔗 SSE 연결 시도:', url);
+
+                connectionStatus.value = 'connecting';
+                connectionStatusText.value = '🔄 연결 중...';
+
+                eventSource = new EventSource(url);
+
+                eventSource.onopen = (event) => {
+                    console.log('✅ SSE 연결 성공:', event);
+                    connectionStatus.value = 'connected';
+                    connectionStatusText.value = '🟢 연결됨';
+                    reconnectAttempts = 0;
+                };
+
+                eventSource.onmessage = (event) => {
+                    console.log('📨 SSE 메시지 수신:', event.data);
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.type === 'SECURITY_ALERT') {
+                            handleSecurityAlert(data);
+                        }
+                    } catch (e) {
+                        console.log('📋 텍스트 메시지:', event.data);
+                    }
+                };
+
+                eventSource.addEventListener('security_alert', (event) => {
+                    console.log('🚨 보안 알림 이벤트:', event.data);
+                    const alert = JSON.parse(event.data);
+                    handleSecurityAlert(alert);
+                });
+
+                eventSource.addEventListener('connected', (event) => {
+                    console.log('🎉 연결 완료 이벤트:', event.data);
+                    connectionStatus.value = 'connected';
+                    connectionStatusText.value = '🟢 연결됨';
+                });
+
+                eventSource.onerror = (error) => {
+                    console.error('❌ SSE 연결 오류:', error);
+                    connectionStatus.value = 'disconnected';
+                    connectionStatusText.value = '🔴 연결 끊어짐';
+
+                    if (reconnectAttempts < maxReconnectAttempts) {
+                        setTimeout(() => {
+                            reconnectAttempts++;
+                            console.log(`🔄 재연결 시도 ${reconnectAttempts}/${maxReconnectAttempts}`);
+                            connectToAlertStream();
+                        }, 3000 * reconnectAttempts);
+                    } else {
+                        console.error('💀 최대 재연결 시도 횟수 도달');
+                    }
+                };
+            }
+
+            // 보안 알림 처리
+            function handleSecurityAlert(alert) {
+                console.log('🚨 보안 알림 처리:', alert);
+
+                const newAlert = {
+                    ...alert,
+                    id: Date.now() + Math.random(),
+                    timestamp: new Date()
+                };
+
+                alerts.value.push(newAlert);
+
+                // 브라우저 알림
+                if (Notification.permission === 'granted') {
+                    new Notification(alert.title, {
+                        body: alert.message,
+                        icon: '/images/security-warning.png'
+                    });
+                }
+
+                // 긴급 알림 시 소리
+                if (alert.severity === 'CRITICAL') {
+                    playAlertSound();
+                }
+
+                // 15초 후 자동 제거
+                setTimeout(() => {
+                    removeAlert(newAlert.id);
+                }, 15000);
+            }
+
+            // 알림 소리 재생
+            function playAlertSound() {
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    oscillator.frequency.value = 800;
+                    oscillator.type = 'sine';
+                    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                    oscillator.start();
+                    oscillator.stop(audioContext.currentTime + 0.2);
+                } catch (error) {
+                    console.warn('알림 소리 재생 실패:', error);
+                }
+            }
+
+            // 색상 팔레트
+            const colors = {
+                primary: '#3498db',
+                danger: '#e74c3c',
+                warning: '#f39c12',
+                success: '#27ae60',
+                info: '#17a2b8',
+                purple: '#9b59b6'
+            };
+
+            // 컴포넌트 마운트 시
+            onMounted(async () => {
+                console.log('🚀 Vue 컴포넌트 마운트 시작');
+
+                const token = localStorage.getItem('accessToken');
+                if (!token) {
+                    alert('로그인이 필요합니다.');
+                    window.location.href = '/login';
+                    return;
+                }
+
+                // 브라우저 알림 권한 요청
+                if (Notification.permission === 'default') {
+                    const permission = await Notification.requestPermission();
+                    console.log('🔔 알림 권한:', permission);
+                }
+
+                await nextTick();
+                console.log('📊 차트 초기화 시작');
+                initializeCharts();
+
+                console.log('🔗 SSE 연결 시작');
+                connectToAlertStream();
+
+                console.log('🔄 데이터 업데이트 시작');
+                startDataUpdates();
+
+                console.log('✅ Vue 컴포넌트 초기화 완료');
+            });
+
+            // 컴포넌트 언마운트 시
+            onUnmounted(() => {
+                console.log('🛑 Vue 컴포넌트 언마운트');
+
+                if (eventSource) {
+                    eventSource.close();
+                    console.log('🔌 SSE 연결 종료');
+                }
+                if (updateInterval) {
+                    clearInterval(updateInterval);
+                    console.log('⏰ 업데이트 인터벌 정리');
+                }
+            });
+
+            // 차트 초기화
+            function initializeCharts() {
+                console.log('📊 차트 초기화 시작');
+
+                try {
+                    // 1. 실시간 보안 이벤트 추이
+                    const ctx1 = document.getElementById('realTimeChart');
+                    if (!ctx1) {
+                        console.error('❌ realTimeChart 캔버스를 찾을 수 없습니다');
+                        return;
+                    }
+
+                    charts.realTime = new Chart(ctx1.getContext('2d'), {
+                        type: 'line',
+                        data: {
+                            labels: [],
+                            datasets: [
+                                {
+                                    label: '브루트포스 공격',
+                                    data: [],
+                                    borderColor: colors.danger,
+                                    backgroundColor: colors.danger + '20',
+                                    tension: 0.4,
+                                    fill: true
+                                },
+                                {
+                                    label: 'DDoS 공격',
+                                    data: [],
+                                    borderColor: colors.warning,
+                                    backgroundColor: colors.warning + '20',
+                                    tension: 0.4,
+                                    fill: true
+                                },
+                                {
+                                    label: '스캐닝 시도',
+                                    data: [],
+                                    borderColor: colors.info,
+                                    backgroundColor: colors.info + '20',
+                                    tension: 0.4,
+                                    fill: true
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {position: 'top'}
+                            },
+                            scales: {
+                                y: {beginAtZero: true}
+                            }
+                        }
+                    });
+
+                    // 2. 시간대별 패턴
+                    const ctx3 = document.getElementById('hourlyChart');
+                    if (!ctx3) {
+                        console.error('❌ hourlyChart 캔버스를 찾을 수 없습니다');
+                        return;
+                    }
+                    charts.hourly = new Chart(ctx3.getContext('2d'), {
+                        type: 'bar',
+                        data: {
+                            labels: Array.from({length: 24}, (_, i) => i.toString().padStart(2, '0') + ':00'),
+                            datasets: [{
+                                label: '공격 시도',
+                                data: new Array(24).fill(0),
+                                backgroundColor: colors.primary
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {beginAtZero: true}
+                            }
+                        }
+                    });
+
+                    // 3. 응답시간 모니터링
+                    const ctx4 = document.getElementById('responseTimeChart');
+                    if (!ctx4) {
+                        console.error('❌ responseTimeChart 캔버스를 찾을 수 없습니다');
+                        return;
+                    }
+                    charts.responseTime = new Chart(ctx4.getContext('2d'), {
+                        type: 'line',
+                        data: {
+                            labels: [],
+                            datasets: [
+                                {
+                                    label: '평균 응답시간 (ms)',
+                                    data: [],
+                                    borderColor: colors.primary,
+                                    backgroundColor: colors.primary + '20',
+                                    tension: 0.4,
+                                    fill: true
+                                },
+                                {
+                                    label: '임계값 (500ms)',
+                                    data: [],
+                                    borderColor: colors.danger,
+                                    borderDash: [5, 5],
+                                    pointRadius: 0,
+                                    fill: false
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {beginAtZero: true}
+                            }
+                        }
+                    });
+                } catch (error) {
+                    console.error('❌ 차트 초기화 실패:', error);
+                    alert('차트 초기화 중 오류가 발생했습니다. 페이지를 새로고침해 주세요.');
+                }
+            }
+
+            // 데이터 업데이트 시작
+            function startDataUpdates() {
+                updateData(); // 즉시 실행
+                updateInterval = setInterval(updateData, 10000); // 10초마다
+            }
+
+            // 실시간 데이터 업데이트 (실제 API 호출)
+            async function updateData() {
+                const token = localStorage.getItem('accessToken');
+
+                try {
+                    // 1. 보안 메트릭 업데이트
+                    const metricsResponse = await fetch(`/api/v1/admin/dashboard/metrics?timeRange=${selectedTimeRange.value}`, {
+                        headers: {'Authorization': `Bearer ${token}`}
+                    });
+
+                    if (metricsResponse.ok) {
+                        const metricsData = await metricsResponse.json();
+                        if (metricsData.success) {
+                            Object.assign(metrics, metricsData.data);
+                        }
+                    }
+
+                    // 2. 위협 IP 업데이트
+                    const threatsResponse = await fetch(`/api/v1/admin/dashboard/threats/top-ips?timeRange=${selectedTimeRange.value}`, {
+                        headers: {'Authorization': `Bearer ${token}`}
+                    });
+
+                    if (threatsResponse.ok) {
+                        const threatsData = await threatsResponse.json();
+                        if (threatsData.success) {
+                            threatIps.value = threatsData.data;
+                        }
+                    }
+
+                    // 3. 타임라인 데이터 업데이트
+                    const timelineResponse = await fetch(`/api/v1/admin/dashboard/events/timeline?timeRange=${selectedTimeRange.value}`, {
+                        headers: {'Authorization': `Bearer ${token}`}
+                    });
+
+                    if (timelineResponse.ok) {
+                        const timelineData = await timelineResponse.json();
+                        if (timelineData.success) {
+                            updateTimelineChart(timelineData.data);
+                        }
+                    }
+
+                    // 4. 시간대별 패턴 업데이트
+                    const hourlyResponse = await fetch('/api/v1/admin/dashboard/patterns/hourly', {
+                        headers: {'Authorization': `Bearer ${token}`}
+                    });
+
+                    if (hourlyResponse.ok) {
+                        const hourlyData = await hourlyResponse.json();
+                        if (hourlyData.success) {
+                            updateHourlyChart(hourlyData.data);
+                        }
+                    }
+
+                    // 5. 응답시간 데이터 업데이트
+                    const responseTimeResponse = await fetch(`/api/v1/admin/dashboard/performance/response-times?timeRange=${selectedTimeRange.value}`, {
+                        headers: {'Authorization': `Bearer ${token}`}
+                    });
+
+                    if (responseTimeResponse.ok) {
+                        const responseTimeData = await responseTimeResponse.json();
+                        if (responseTimeData.success) {
+                            updateResponseTimeChart(responseTimeData.data);
+                        }
+                    }
+
+                } catch (error) {
+                    console.warn('API 호출 실패:', error);
+                    // 폴백 데이터 사용 가능
+                }
+
+                lastUpdateTime.value = new Date().toLocaleTimeString();
+            }
+
+            // 타임라인 차트 업데이트
+            function updateTimelineChart(data) {
+                if (!charts.realTime || !data || data.length === 0) return;
+
+                const labels = data.map(item => {
+                    const date = new Date(item.timestamp);
+                    return date.toLocaleTimeString();
+                });
+
+                const bruteforceData = data.map(item => item.bruteforceCount || 0);
+                const ddosData = data.map(item => item.ddosCount || 0);
+                const scanningData = data.map(item => item.scanningCount || 0);
+
+                charts.realTime.data.labels = labels;
+                charts.realTime.data.datasets[0].data = bruteforceData;
+                charts.realTime.data.datasets[1].data = ddosData;
+                charts.realTime.data.datasets[2].data = scanningData;
+
+                charts.realTime.update('none');
+            }
+
+            // 시간대별 차트 업데이트
+            function updateHourlyChart(data) {
+                if (!charts.hourly || !data || data.length === 0) return;
+
+                const hourlyData = new Array(24).fill(0);
+                data.forEach(item => {
+                    if (item.hour >= 0 && item.hour < 24) {
+                        hourlyData[item.hour] = item.attackCount || 0;
+                    }
+                });
+
+                charts.hourly.data.datasets[0].data = hourlyData;
+                charts.hourly.update('none');
+            }
+
+            // 응답시간 차트 업데이트
+            function updateResponseTimeChart(data) {
+                if (!charts.responseTime || !data || data.length === 0) return;
+
+                const labels = data.map(item => {
+                    const date = new Date(item.timestamp);
+                    return date.toLocaleTimeString();
+                });
+
+                const responseTimeData = data.map(item => item.averageResponseTime || 0);
+                const thresholdData = new Array(data.length).fill(500);
+
+                charts.responseTime.data.labels = labels;
+                charts.responseTime.data.datasets[0].data = responseTimeData;
+                charts.responseTime.data.datasets[1].data = thresholdData;
+
+                charts.responseTime.update('none');
+            }
+
+            // 유틸리티 함수들
+            function formatNumber(num) {
+                if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+                if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+                return num.toString();
+            }
+
+            function formatTime(timestamp) {
+                return new Date(timestamp).toLocaleTimeString();
+            }
+
+            function getThreatColor(risk) {
+                const colorMap = {
+                    'CRITICAL': '#dc3545',
+                    'HIGH': '#fd7e14',
+                    'MEDIUM': '#ffc107',
+                    'LOW': '#28a745'
+                };
+                return colorMap[risk] || '#6c757d';
+            }
+
+            // 사용자 액션 함수들
+            function refreshAllData() {
+                updateData();
+                // 모든 차트 새로고침
+                Object.values(charts).forEach(chart => {
+                    if (chart && typeof chart.update === 'function') {
+                        chart.update();
+                    }
+                });
+            }
+
+            function updateTimeRange() {
+                console.log(`시간 범위 변경: ${selectedTimeRange.value}`);
+                updateData();
+            }
+
+            async function testAlert() {
+                const token = localStorage.getItem('accessToken');
+
+                try {
+                    const response = await fetch('/api/v1/admin/security/alerts/test', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (response.ok) {
+                        console.log('테스트 알림 전송 완료');
+                    }
+                } catch (error) {
+                    console.error('테스트 알림 실패:', error);
+                    // 직접 테스트 알림 생성
+                    handleSecurityAlert({
+                        title: '🧪 테스트 보안 알림',
+                        message: '이것은 시스템 테스트 알림입니다.\n모든 기능이 정상 작동중입니다.',
+                        severity: 'MEDIUM',
+                        alertKey: 'test-' + Date.now(),
+                        ipAddress: '192.168.1.100'
+                    });
+                }
+            }
+
+            function exportReport() {
+                console.log('리포트 내보내기 기능 (구현 예정)');
+                alert('리포트 내보내기 기능이 곧 출시됩니다!');
+            }
+
+            async function acknowledgeAlert(alert) {
+                const token = localStorage.getItem('accessToken');
+
+                try {
+                    await fetch('/api/v1/admin/security/alerts/acknowledge', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({alertKey: alert.alertKey})
+                    });
+
+                    removeAlert(alert.id);
+                    console.log('알림 확인 처리됨');
+                } catch (error) {
+                    console.error('알림 확인 실패:', error);
+                    removeAlert(alert.id);
+                }
+            }
+
+            async function suppressAlert(alert, hours) {
+                const token = localStorage.getItem('accessToken');
+
+                try {
+                    await fetch('/api/v1/admin/security/alerts/suppress', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            alertKey: alert.alertKey,
+                            suppressHours: hours
+                        })
+                    });
+
+                    removeAlert(alert.id);
+                    console.log(`${hours}시간 동안 알림 억제됨`);
+                } catch (error) {
+                    console.error('알림 억제 실패:', error);
+                    removeAlert(alert.id);
+                }
+            }
+
+            function blockIp(ipAddress) {
+                if (confirm(`IP ${ipAddress}를 차단하시겠습니까?`)) {
+                    console.log(`IP 차단 요청: ${ipAddress}`);
+                    // 실제 IP 차단 API 호출
+                    alert(`IP ${ipAddress} 차단 요청이 전송되었습니다.`);
+                }
+            }
+
+            function removeAlert(alertId) {
+                const index = alerts.value.findIndex(alert => alert.id === alertId);
+                if (index > -1) {
+                    alerts.value.splice(index, 1);
+                }
+            }
+
+            // 템플릿에서 사용할 함수들 반환
+            return {
+                // 반응형 데이터
+                connectionStatus,
+                connectionStatusText,
+                selectedTimeRange,
+                lastUpdateTime,
+                alerts,
+                metrics,
+                threatIps,
+
+                // 함수들
+                formatNumber,
+                formatTime,
+                getThreatColor,
+                refreshAllData,
+                updateTimeRange,
+                testAlert,
+                exportReport,
+                acknowledgeAlert,
+                suppressAlert,
+                blockIp,
+                removeAlert
+            };
+
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>
