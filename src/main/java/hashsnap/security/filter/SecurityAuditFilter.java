@@ -1,6 +1,7 @@
 package hashsnap.security.filter;
 
 import hashsnap.security.entity.SecurityLogEvent;
+import hashsnap.security.processor.SecurityLogStreamProcessor;
 import hashsnap.security.service.SecurityLogService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -21,6 +22,7 @@ import java.io.IOException;
 public class SecurityAuditFilter extends OncePerRequestFilter {
 
     private final SecurityLogService securityLogService;
+    private final SecurityLogStreamProcessor streamProcessor;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
@@ -38,7 +40,8 @@ public class SecurityAuditFilter extends OncePerRequestFilter {
         try {
             long processingTime = System.currentTimeMillis() - startTime;
 
-            securityLogService.saveLogAsync(SecurityLogEvent.builder()
+            SecurityLogEvent event =
+                    securityLogService.saveLogAsync(SecurityLogEvent.builder()
                     .eventType(determineEventType(request, response))
                     .endpoint(request.getRequestURI())
                     .httpMethod(request.getMethod())
@@ -50,10 +53,13 @@ public class SecurityAuditFilter extends OncePerRequestFilter {
                     .processingTimeMs(processingTime) // 추가 정보
                     .build());
 
+            streamProcessor.processLogInRealTime(event); // 스트림 처리
+
         } catch (Exception e) {
             log.error("보안 감사 로그 저장 실패", e);
         }
     }
+
     private String determineEventType(HttpServletRequest request, HttpServletResponse response) {
         String uri = request.getRequestURI();
         int status = response.getStatus();
@@ -78,12 +84,18 @@ public class SecurityAuditFilter extends OncePerRequestFilter {
     private String getFailureReason(HttpServletResponse response) {
         int status = response.getStatus();
         switch (status) {
-            case 302: return "REDIRECT_TO_LOGIN";
-            case 401: return "UNAUTHORIZED";
-            case 403: return "ACCESS_DENIED";
-            case 404: return "NOT_FOUND";
-            case 500: return "INTERNAL_ERROR";
-            default: return null;
+            case 302:
+                return "REDIRECT_TO_LOGIN";
+            case 401:
+                return "UNAUTHORIZED";
+            case 403:
+                return "ACCESS_DENIED";
+            case 404:
+                return "NOT_FOUND";
+            case 500:
+                return "INTERNAL_ERROR";
+            default:
+                return null;
         }
     }
 

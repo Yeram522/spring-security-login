@@ -154,7 +154,9 @@
         document.getElementById('userPhone').textContent = user.phone || '-';
         if (user.role === 'ROLE_ADMIN') {
             document.getElementById('adminBtn').style.display = 'inline-block';
-            document.getElementById('adminBtn').onclick = () => window.location.href = '/admin';
+            document.getElementById('adminBtn').onclick = () => {
+                window.location.href = '/admin-dashboard.html';
+            };
         }
         document.getElementById('userInfoCard').style.display = 'block';
     }

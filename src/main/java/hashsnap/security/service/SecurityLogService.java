@@ -33,8 +33,8 @@ public class SecurityLogService {
 
     // 비동기 로그 저장 (성능 최적화)
     @Async
-    public void saveLogAsync(SecurityLogEvent event) {
-        saveLog(event);
+    public SecurityLogEvent saveLogAsync(SecurityLogEvent event) {
+        return saveLog(event);
     }
 
     // 로그 조회

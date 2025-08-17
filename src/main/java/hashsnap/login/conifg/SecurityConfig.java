@@ -50,10 +50,12 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(authz -> authz
                         // === 정적 리소스 ===
-                        .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico","/*.html").permitAll()
+                        .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
+
+                        .requestMatchers("/admin-dashboard.html").permitAll()
 
                         // === HTML 페이지 ===
-                        .requestMatchers("/", "/login", "/register", "/findPwd", "/userPage","/admin").permitAll()
+                        .requestMatchers("/", "/login", "/register", "/findPwd", "/userPage").permitAll()
 
                         // === Public API (인증 불필요) ===
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()           // 로그인
@@ -66,11 +68,17 @@ public class SecurityConfig {
                         // === SSE 스트림만 예외 처리 ===
                         .requestMatchers("/api/v1/admin/security/alerts/stream").permitAll()
 
+                        // /admin 경로는 ADMIN 권한 필요 (보안 탐지 활성화!)
+                        .requestMatchers("/admin/**", "/admin").hasRole("ADMIN")
+
+
                         // === 관리자 전용 API === 👈
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
 
                         // === 일반 사용자 API (JWT 토큰 + USER 또는 ADMIN 권한 필요) ===
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/me").hasAnyRole("USER", "ADMIN")          // 내 정보 조회
+
+                        .requestMatchers("/*.html").permitAll()
 
                         // === 인증만 필요한 API (권한 상관없이 로그인만 되면 됨) ===
                         .requestMatchers("/api/v1/auth/refresh").authenticated()                      // 토큰 갱신
